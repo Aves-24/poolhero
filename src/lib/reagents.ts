@@ -48,7 +48,7 @@ const FILL: WizardStep = {
 
 const ZERO: WizardStep = {
   kind: "instruction",
-  title: "3. Kalibracja ZERO — tylko raz na całą sesję",
+  title: "3. Skalibruj — naciśnij ZERO",
   body: "Z czystą wodą basenową (BEZ żadnej tabletki) naciśnij przycisk ZERO i poczekaj na potwierdzenie. Kalibrację ZERO wykonujesz tylko RAZ — jest ważna dla wszystkich kolejnych pomiarów w tej sesji.",
 };
 
@@ -85,7 +85,7 @@ const MEASURE_STEPS: Record<MeasureKey, WizardStep[]> = {
     },
     {
       kind: "input",
-      title: "Chlor całkowity — DPD No. 3",
+      title: "Chlor całkowity — DPD No. 3 — NIE WYLEWAJ WODY",
       body: "Do TEJ SAMEJ próbki (nie wylewaj!) dodaj 1 tabletkę DPD No. 3, rozkrusz i naciśnij ponownie przycisk Cl. Odczytaj CHLOR CAŁKOWITY i wpisz poniżej. Chlor związany aplikacja policzy sama.",
       field: "totalCl",
       unit: "mg/l",
