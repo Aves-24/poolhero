@@ -92,6 +92,30 @@ async function ensureSheets() {
   initialized = true;
 }
 
+/**
+ * Dopisuje wiersz na końcu arkusza pod jawnie wyliczonym numerem wiersza.
+ * NIE używamy `values.append` — Google Sheets API zawodnie wykrywa "tabelę"
+ * gdy nagłówek jest węższy niż dane (np. stary 4-kolumnowy nagłówek Users),
+ * co potrafi wstawić nowy wiersz przesunięty o kilka kolumn w prawo.
+ * Jawny numer wiersza + `values.update` daje deterministyczne umiejscowienie.
+ */
+async function appendRow(sheetName: string, lastCol: string, values: (string | number | boolean)[]): Promise<void> {
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${sheetName}!A:${lastCol}`,
+    valueRenderOption: "UNFORMATTED_VALUE",
+  });
+  const rows = res.data.values || [];
+  const rowNumber = rows.length + 1;
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SHEET_ID,
+    range: `${sheetName}!A${rowNumber}:${lastCol}${rowNumber}`,
+    valueInputOption: "RAW",
+    requestBody: { values: [values] },
+  });
+}
+
 async function sheetId(title: string): Promise<number> {
   const sheets = getSheetsClient();
   const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID });
@@ -188,13 +212,7 @@ export async function addUser(input: NewUser, owner: string): Promise<User> {
     return user;
   }
   await ensureSheets();
-  const sheets = getSheetsClient();
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: `${USERS_TAB}!A:M`,
-    valueInputOption: "RAW",
-    requestBody: { values: [[user.id, user.name, user.volumeLiters, user.createdAt, user.filterType ?? "", user.sanitizer ?? "", user.covered ?? "", user.heated ?? "", user.usage ?? "", user.sanitizerNote ?? "", user.city ?? "", user.photoUrl ?? "", user.ownerEmail ?? ""]] },
-  });
+  await appendRow(USERS_TAB, "M", [user.id, user.name, user.volumeLiters, user.createdAt, user.filterType ?? "", user.sanitizer ?? "", user.covered ?? "", user.heated ?? "", user.usage ?? "", user.sanitizerNote ?? "", user.city ?? "", user.photoUrl ?? "", user.ownerEmail ?? ""]);
   return user;
 }
 
@@ -352,28 +370,18 @@ export async function addTest(input: NewTest, owner: string): Promise<TestResult
     return test;
   }
   await ensureSheets();
-  const sheets = getSheetsClient();
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: `${TESTS_TAB}!A:J`,
-    valueInputOption: "RAW",
-    requestBody: {
-      values: [
-        [
-          test.id,
-          test.userId,
-          test.createdAt,
-          test.ph ?? "",
-          test.freeCl ?? "",
-          test.totalCl ?? "",
-          test.combinedCl ?? "",
-          test.alkalinity ?? "",
-          test.cya ?? "",
-          test.note ?? "",
-        ],
-      ],
-    },
-  });
+  await appendRow(TESTS_TAB, "J", [
+    test.id,
+    test.userId,
+    test.createdAt,
+    test.ph ?? "",
+    test.freeCl ?? "",
+    test.totalCl ?? "",
+    test.combinedCl ?? "",
+    test.alkalinity ?? "",
+    test.cya ?? "",
+    test.note ?? "",
+  ]);
   return test;
 }
 
