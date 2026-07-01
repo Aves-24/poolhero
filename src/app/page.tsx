@@ -81,7 +81,6 @@ export default function HomePage() {
       <section className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Wybierz profil basenu</h1>
-          <p className="text-slate-500 mt-1">Każdy profil ma własną objętość wody i historię testów.</p>
         </div>
         {session?.user && (
           <div className="text-right flex-shrink-0">
