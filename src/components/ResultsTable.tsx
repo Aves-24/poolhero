@@ -50,30 +50,7 @@ export default function ResultsTable({ test, volumeLiters, user }: { test: TestR
   const measured = rows.filter((r) => r.status !== "missing");
   const problems = measured.filter((r) => r.status !== "ok");
 
-  const [aiText, setAiText] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  async function askGemini() {
-    setAiLoading(true);
-    setAiError(null);
-    setAiText(null);
-    try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ test, volumeLiters, user }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Błąd analizy AI");
-      setAiText(data.text);
-    } catch (e) {
-      setAiError((e as Error).message);
-    } finally {
-      setAiLoading(false);
-    }
-  }
 
   async function sharePrompt() {
     const text = buildPrompt(test, volumeLiters, user);
@@ -151,46 +128,16 @@ export default function ResultsTable({ test, volumeLiters, user }: { test: TestR
         )}
       </div>
 
-      {/* Przyciski AI */}
-      <div className="pt-1 flex gap-2">
-        <button
-          onClick={askGemini}
-          disabled={aiLoading || measured.length === 0}
-          className="btn-secondary flex-1 gap-2 py-3"
-        >
-          {aiLoading ? (
-            <><span className="inline-block animate-spin">✦</span> Gemini analizuje…</>
-          ) : (
-            <><span>✨</span> Zapytaj Gemini AI</>
-          )}
-        </button>
-
+      <div className="pt-1">
         <button
           onClick={sharePrompt}
           disabled={measured.length === 0}
-          className="btn-secondary gap-2 py-3 px-4"
+          className="btn-secondary w-full gap-2 py-3"
           title="Udostępnij prompt (WhatsApp, schowek…)"
         >
           {copied ? "✓ Skopiowano" : <><span>📤</span> Udostępnij</>}
         </button>
       </div>
-
-      {aiError && (
-        <div className="card border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">
-          {aiError}
-        </div>
-      )}
-
-      {aiText && (
-        <div className="card p-4 border-pool-200 bg-pool-50">
-          <div className="flex items-center gap-2 mb-2 text-pool-700 font-semibold text-sm">
-            <span>✨</span> Analiza Gemini AI
-          </div>
-          <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-            {aiText}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
