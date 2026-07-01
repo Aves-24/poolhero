@@ -134,3 +134,4 @@ export function buildSteps(keys: MeasureKey[]): WizardStep[] {
 }
 
 export const FULL_TEST_KEYS: MeasureKey[] = ["ph", "chlorine", "alkalinity", "cya"];
+export const QUICK_TEST_KEYS: MeasureKey[] = ["ph", "chlorine"];

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { TestResult, User } from "@/lib/types";
-import { buildSteps, FULL_TEST_KEYS, MEASURE_OPTIONS, MeasureKey, InputField } from "@/lib/reagents";
+import { buildSteps, FULL_TEST_KEYS, QUICK_TEST_KEYS, MEASURE_OPTIONS, MeasureKey, InputField } from "@/lib/reagents";
 import ResultsTable from "./ResultsTable";
 
 type Mode = "choose" | "single-select" | "running" | "done";
@@ -22,6 +22,13 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
 
   function startFull() {
     setKeys(FULL_TEST_KEYS);
+    setValues({});
+    setStepIdx(0);
+    setMode("running");
+  }
+
+  function startQuick() {
+    setKeys(QUICK_TEST_KEYS);
     setValues({});
     setStepIdx(0);
     setMode("running");
@@ -89,13 +96,18 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
         <button onClick={startFull} className="card p-5 w-full text-left hover:border-pool-300 transition">
           <div className="text-lg font-semibold text-pool-800">🧪 Pełny test</div>
           <div className="text-slate-500 text-sm mt-1">
-            Wszystkie odczynniki po kolei: pH, chlor (wolny + całkowity), zasadowość, stabilizator. Aplikacja
-            przeprowadzi Cię krok po kroku.
+            Tabletki: Phenol Red · DPD No. 1 · DPD No. 3 · Alkalinity-M · CYA Test
+          </div>
+        </button>
+        <button onClick={startQuick} className="card p-5 w-full text-left hover:border-pool-300 transition">
+          <div className="text-lg font-semibold text-slate-800">⚡ Szybki test</div>
+          <div className="text-slate-500 text-sm mt-1">
+            Tabletki: Phenol Red · DPD No. 1 · DPD No. 3
           </div>
         </button>
         <button onClick={() => setMode("single-select")} className="card p-5 w-full text-left hover:border-pool-300 transition">
           <div className="text-lg font-semibold text-slate-800">🔬 Pojedynczy pomiar</div>
-          <div className="text-slate-500 text-sm mt-1">Zmierz tylko jeden wybrany parametr.</div>
+          <div className="text-slate-500 text-sm mt-1">Wybierz jeden parametr do zmierzenia.</div>
         </button>
       </div>
     );
@@ -111,8 +123,7 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
           {MEASURE_OPTIONS.map((o) => (
             <button key={o.key} onClick={() => startSingle(o.key)} className="card p-4 text-left hover:border-pool-300 transition">
               <div className="font-semibold text-slate-800">{o.label}</div>
-              <div className="text-sm text-slate-500">{o.description}</div>
-              <div className="text-xs text-pool-600 mt-1">Odczynnik: {o.reagent}</div>
+              <div className="text-sm text-slate-500 mt-1">Tabletka: {o.reagent}</div>
             </button>
           ))}
         </div>
