@@ -20,6 +20,7 @@ export default function PoolPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openTest, setOpenTest] = useState<TestResult | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // ustawienia
   const [name, setName] = useState("");
@@ -101,6 +102,24 @@ export default function PoolPage() {
       setError((e as Error).message);
     } finally {
       setSavingSettings(false);
+    }
+  }
+
+  async function handleDeleteTest(testId: string) {
+    if (!window.confirm("Usunąć ten wpis z historii?")) return;
+    setDeletingId(testId);
+    try {
+      const res = await fetch(`/api/tests/${testId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || "Błąd usuwania");
+      }
+      if (openTest?.id === testId) setOpenTest(null);
+      setTests((prev) => prev.filter((t) => t.id !== testId));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -241,7 +260,16 @@ export default function PoolPage() {
         <div className="space-y-3">
           {openTest ? (
             <div className="space-y-3">
-              <button onClick={() => setOpenTest(null)} className="btn-ghost text-sm">← Lista testów</button>
+              <div className="flex items-center justify-between">
+                <button onClick={() => setOpenTest(null)} className="btn-ghost text-sm">← Lista testów</button>
+                <button
+                  onClick={() => handleDeleteTest(openTest.id)}
+                  disabled={deletingId === openTest.id}
+                  className="text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg px-3 py-1.5 transition disabled:opacity-50"
+                >
+                  {deletingId === openTest.id ? "Usuwam…" : "🗑 Usuń wpis"}
+                </button>
+              </div>
               <div className="text-sm text-slate-500">{new Date(openTest.createdAt).toLocaleString("pl-PL")}</div>
               <ResultsTable test={openTest} volumeLiters={user.volumeLiters} user={user} />
             </div>
@@ -253,21 +281,31 @@ export default function PoolPage() {
               const measured = rows.filter((r) => r.status !== "missing");
               const problems = measured.filter((r) => r.status !== "ok");
               return (
-                <button key={t.id} onClick={() => setOpenTest(t)} className="card p-4 w-full text-left hover:border-pool-300 transition">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-slate-700">{new Date(t.createdAt).toLocaleString("pl-PL")}</span>
-                    <span className={`text-xs rounded-full border px-2 py-0.5 ${problems.length === 0 ? statusColor("ok") : statusColor("high")}`}>
-                      {measured.length === 0 ? "—" : problems.length === 0 ? "Wszystko OK" : `${problems.length} do poprawy`}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-                    {rows.filter((r) => r.status !== "missing").map((r) => (
-                      <span key={r.key} className={`rounded-full border px-2 py-0.5 ${statusColor(r.status)}`}>
-                        {r.label}: {r.value} {statusLabel(r.status) !== "OK" ? `(${statusLabel(r.status)})` : "✓"}
+                <div key={t.id} className="card p-4 hover:border-pool-300 transition relative">
+                  <button onClick={() => setOpenTest(t)} className="w-full text-left">
+                    <div className="flex items-center justify-between pr-8">
+                      <span className="font-medium text-slate-700">{new Date(t.createdAt).toLocaleString("pl-PL")}</span>
+                      <span className={`text-xs rounded-full border px-2 py-0.5 ${problems.length === 0 ? statusColor("ok") : statusColor("high")}`}>
+                        {measured.length === 0 ? "—" : problems.length === 0 ? "Wszystko OK" : `${problems.length} do poprawy`}
                       </span>
-                    ))}
-                  </div>
-                </button>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                      {rows.filter((r) => r.status !== "missing").map((r) => (
+                        <span key={r.key} className={`rounded-full border px-2 py-0.5 ${statusColor(r.status)}`}>
+                          {r.label}: {r.value} {statusLabel(r.status) !== "OK" ? `(${statusLabel(r.status)})` : "✓"}
+                        </span>
+                      ))}
+                    </div>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteTest(t.id); }}
+                    disabled={deletingId === t.id}
+                    className="absolute top-3 right-3 text-slate-300 hover:text-rose-500 transition text-lg leading-none disabled:opacity-40"
+                    title="Usuń wpis"
+                  >
+                    {deletingId === t.id ? "…" : "✕"}
+                  </button>
+                </div>
               );
             })
           )}

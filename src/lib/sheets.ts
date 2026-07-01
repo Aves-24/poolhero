@@ -270,6 +270,34 @@ export async function getTests(userId: string): Promise<TestResult[]> {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+export async function deleteTest(testId: string): Promise<void> {
+  if (!useSheets) {
+    const db = await readJson();
+    db.tests = db.tests.filter((t) => t.id !== testId);
+    await writeJson(db);
+    return;
+  }
+  await ensureSheets();
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TESTS_TAB}!A2:A`, valueRenderOption: "UNFORMATTED_VALUE" });
+  const rows = res.data.values || [];
+  const idx = rows.findIndex((r) => String(r[0]) === testId);
+  if (idx < 0) return;
+  const testsSheetId = await sheetId(TESTS_TAB);
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SHEET_ID,
+    requestBody: {
+      requests: [
+        {
+          deleteDimension: {
+            range: { sheetId: testsSheetId, dimension: "ROWS", startIndex: idx + 1, endIndex: idx + 2 },
+          },
+        },
+      ],
+    },
+  });
+}
+
 export async function addTest(input: NewTest): Promise<TestResult> {
   const test: TestResult = withCombined({
     id: id(),
