@@ -123,6 +123,15 @@ export default function PoolPage() {
     }
   }
 
+  function lastTestLabel(ts: TestResult[]): string {
+    if (ts.length === 0) return "Brak testów";
+    const days = Math.floor((Date.now() - new Date(ts[0].createdAt).getTime()) / 86_400_000);
+    if (days === 0) return "Ostatni test: dzisiaj";
+    if (days === 1) return "Ostatni test: 1 dzień temu";
+    if (days < 5) return `Ostatni test: ${days} dni temu`;
+    return `Ostatni test: ${days} dni temu`;
+  }
+
   if (loading) return <div className="text-slate-400">Ładowanie…</div>;
   if (!user)
     return (
@@ -138,7 +147,7 @@ export default function PoolPage() {
         <button onClick={() => router.push("/")} className="btn-ghost px-2" title="Profile">←</button>
         <div>
           <h1 className="text-2xl font-bold text-slate-800">{user.name}</h1>
-          <p className="text-slate-500 text-sm">{user.volumeLiters.toLocaleString("pl-PL")} l wody</p>
+          <p className="text-slate-500 text-sm">{lastTestLabel(tests)}</p>
         </div>
       </div>
 
