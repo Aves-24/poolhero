@@ -8,6 +8,29 @@ import ResultsTable from "./ResultsTable";
 type Mode = "choose" | "single-select" | "running" | "done";
 type Values = Partial<Record<InputField, string>>;
 
+const FIELD_INFO: Partial<Record<InputField, { purpose: string; range: string }>> = {
+  ph: {
+    purpose: "Odczyn kwasowości wody. Wpływa na skuteczność chloru i komfort pływania — przy złym pH chlor traci działanie nawet przy prawidłowym stężeniu.",
+    range: "Ideał: 7,2 · Norma: 7,0 – 7,4",
+  },
+  freeCl: {
+    purpose: "Aktywny chlor dezynfekujący wodę. Za mało = brak ochrony przed bakteriami, za dużo = podrażnienia skóry i oczu.",
+    range: "Ideał: 2,0 mg/l · Norma: 1,0 – 3,0 mg/l",
+  },
+  totalCl: {
+    purpose: "Chlor całkowity = wolny + związany (chloraminy). Aplikacja wyliczy sam chlor związany — to on powoduje charakterystyczny zapach basenu i podrażnienia.",
+    range: "Chlor związany (różnica) max 0,2 mg/l · Im bliżej chloru wolnego, tym lepiej",
+  },
+  alkalinity: {
+    purpose: "Bufor stabilizujący pH. Wysoka zasadowość sprawia, że pH jest odporne na skoki po dodaniu chemii lub po deszczu.",
+    range: "Ideał: 100 mg/l · Norma: 80 – 120 mg/l",
+  },
+  cya: {
+    purpose: "Stabilizator chroni chlor przed rozkładem przez promieniowanie UV (słońce). Bez niego chlor w słoneczny dzień może zniknąć w ciągu kilku godzin.",
+    range: "Ideał: 40 mg/l · Norma: 30 – 50 mg/l",
+  },
+};
+
 export default function TestWizard({ user, onSaved }: { user: User; onSaved: () => void }) {
   const [mode, setMode] = useState<Mode>("choose");
   const [keys, setKeys] = useState<MeasureKey[]>([]);
@@ -195,6 +218,13 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
             {stepIdx === steps.length - 1 ? (saving ? "Zapisuję…" : "Zakończ i pokaż wynik") : "Dalej →"}
           </button>
         </div>
+
+        {isInput && field && FIELD_INFO[field] && (
+          <div className="rounded-xl border border-pool-100 bg-pool-50 p-4 text-sm space-y-1.5">
+            <p className="text-slate-600 leading-relaxed">{FIELD_INFO[field]!.purpose}</p>
+            <p className="font-medium text-pool-700">{FIELD_INFO[field]!.range}</p>
+          </div>
+        )}
       </div>
     );
   }
