@@ -130,6 +130,7 @@ export async function getUsers(): Promise<User[]> {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
     range: `${USERS_TAB}!A2:D`,
+    valueRenderOption: "UNFORMATTED_VALUE",
   });
   const rows = res.data.values || [];
   return rows
@@ -173,7 +174,7 @@ export async function updateUser(userId: string, patch: Partial<NewUser>): Promi
   }
   await ensureSheets();
   const sheets = getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${USERS_TAB}!A2:D` });
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${USERS_TAB}!A2:D`, valueRenderOption: "UNFORMATTED_VALUE" });
   const rows = res.data.values || [];
   const idx = rows.findIndex((r) => String(r[0]) === userId);
   if (idx < 0) return null;
@@ -204,7 +205,7 @@ export async function deleteUser(userId: string): Promise<void> {
   }
   await ensureSheets();
   const sheets = getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${USERS_TAB}!A2:D` });
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${USERS_TAB}!A2:D`, valueRenderOption: "UNFORMATTED_VALUE" });
   const rows = res.data.values || [];
   const idx = rows.findIndex((r) => String(r[0]) === userId);
   if (idx < 0) return;
@@ -230,7 +231,7 @@ export async function getTests(userId: string): Promise<TestResult[]> {
   }
   await ensureSheets();
   const sheets = getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TESTS_TAB}!A2:J` });
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TESTS_TAB}!A2:J`, valueRenderOption: "UNFORMATTED_VALUE" });
   const rows = res.data.values || [];
   return rows
     .filter((r) => r[0] && String(r[1]) === userId)
