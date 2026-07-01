@@ -42,20 +42,21 @@ const POWER_ON: WizardStep = {
 
 const FILL: WizardStep = {
   kind: "instruction",
-  title: "2. Napełnij kuwetę wodą",
+  title: "2. Napełnij kuwetę wodą basenową",
   body: "Zanurz urządzenie w basenie lub nalej próbkę wody basenowej do kreski (ok. 10 ml). Wytrzyj kuwetę z zewnątrz do sucha.",
 };
 
 const ZERO: WizardStep = {
   kind: "instruction",
-  title: "3. Kalibracja ZERO",
-  body: "Z czystą wodą basenową (jeszcze BEZ tabletki) naciśnij przycisk ZERO i poczekaj na potwierdzenie kalibracji.",
+  title: "3. Kalibracja ZERO — tylko raz na całą sesję",
+  body: "Z czystą wodą basenową (BEZ żadnej tabletki) naciśnij przycisk ZERO i poczekaj na potwierdzenie. Kalibrację ZERO wykonujesz tylko RAZ — jest ważna dla wszystkich kolejnych pomiarów w tej sesji.",
 };
 
-const REZERO: WizardStep = {
+/** Krok wymiany próbki między pomiarami — BEZ ZERO */
+const FRESH_SAMPLE: WizardStep = {
   kind: "instruction",
-  title: "Świeża próbka + ZERO",
-  body: "Wylej wodę z poprzedniego pomiaru, przepłucz kuwetę, napełnij świeżą wodą basenową do kreski i ponownie naciśnij przycisk ZERO.",
+  title: "Wymień próbkę wody",
+  body: "Wylej wodę z poprzedniego pomiaru, przepłucz kuwetę i napełnij świeżą wodą basenową do kreski. Nie naciskaj ZERO — kalibracja z początku sesji nadal obowiązuje.",
 };
 
 const MEASURE_STEPS: Record<MeasureKey, WizardStep[]> = {
@@ -85,7 +86,7 @@ const MEASURE_STEPS: Record<MeasureKey, WizardStep[]> = {
     {
       kind: "input",
       title: "Chlor całkowity — DPD No. 3",
-      body: "Do TEJ SAMEJ próbki dodaj 1 tabletkę DPD No. 3, rozkrusz i naciśnij ponownie przycisk Cl. Odczytaj CHLOR CAŁKOWITY i wpisz poniżej. (Chlor związany aplikacja policzy sama.)",
+      body: "Do TEJ SAMEJ próbki (nie wylewaj!) dodaj 1 tabletkę DPD No. 3, rozkrusz i naciśnij ponownie przycisk Cl. Odczytaj CHLOR CAŁKOWITY i wpisz poniżej. Chlor związany aplikacja policzy sama.",
       field: "totalCl",
       unit: "mg/l",
       step: 0.1,
@@ -119,11 +120,14 @@ const MEASURE_STEPS: Record<MeasureKey, WizardStep[]> = {
   ],
 };
 
-/** Buduje listę kroków kreatora dla wybranych pomiarów (kolejność ma znaczenie) */
+/** Buduje listę kroków kreatora dla wybranych pomiarów.
+ *  ZERO wykonywane RAZ na początku sesji (zgodnie z instrukcją PoolLab 1.0).
+ *  Między parametrami: tylko świeża próbka wody, bez ponownego ZERO.
+ */
 export function buildSteps(keys: MeasureKey[]): WizardStep[] {
   const steps: WizardStep[] = [POWER_ON, FILL, ZERO];
   keys.forEach((k, i) => {
-    if (i > 0) steps.push(REZERO);
+    if (i > 0) steps.push(FRESH_SAMPLE);
     steps.push(...MEASURE_STEPS[k]);
   });
   return steps;
