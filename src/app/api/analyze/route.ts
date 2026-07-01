@@ -68,7 +68,15 @@ export async function POST(req: Request) {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || "Błąd Gemini API");
+    if (!res.ok) {
+      const msg: string = data.error?.message || "";
+      if (msg.includes("quota") || msg.includes("Quota") || res.status === 429) {
+        throw new Error(
+          "Przekroczono limit Gemini API. Włącz billing w Google Cloud Console dla projektu z kluczem API — koszt to ok. $0.00005 za analizę (Gemini 2.0 Flash). Szczegóły: https://console.cloud.google.com/billing"
+        );
+      }
+      throw new Error(msg || "Błąd Gemini API");
+    }
 
     const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? "Brak odpowiedzi.";
     return NextResponse.json({ text });
