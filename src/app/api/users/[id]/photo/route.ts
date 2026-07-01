@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { uploadPhoto, deletePhotoByUrl } from "@/lib/drive";
+import { uploadPhoto, deletePhotoByUrl } from "@/lib/blob";
 import { updateUser, getUsers } from "@/lib/sheets";
 import { getOwnerEmail } from "@/lib/session";
 
