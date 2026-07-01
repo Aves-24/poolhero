@@ -26,6 +26,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (body.heated !== undefined) patch.heated = Boolean(body.heated);
     if (body.usage !== undefined) patch.usage = VALID_USAGE.includes(body.usage) ? body.usage : undefined;
     if (body.sanitizerNote !== undefined) patch.sanitizerNote = String(body.sanitizerNote).slice(0, 200) || undefined;
+    if (body.city !== undefined) patch.city = String(body.city).slice(0, 100) || undefined;
 
     const user = await updateUser(params.id, patch);
     if (!user) return NextResponse.json({ error: "Nie znaleziono profilu" }, { status: 404 });

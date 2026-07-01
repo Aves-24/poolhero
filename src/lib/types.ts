@@ -40,6 +40,8 @@ export interface User {
   usage?: UsageLevel;
   /** Własny opis preparatu dezynfekującego (np. "HTH Granulat 90%", "Bayrol Chlorifix") */
   sanitizerNote?: string;
+  /** Miasto, w którym stoi basen (do sprawdzania pogody w prompcie AI) */
+  city?: string;
 }
 
 export interface TestResult {

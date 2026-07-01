@@ -8,7 +8,43 @@ const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-function buildPrompt(test: TestResult, volumeLiters: number, user?: User): string {
+async function fetchWeatherSummary(city: string): Promise<string | null> {
+  try {
+    const geoRes = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=pl&format=json`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!geoRes.ok) return null;
+    const geoData = await geoRes.json();
+    if (!geoData.results?.length) return null;
+    const { latitude, longitude, name, country } = geoData.results[0];
+
+    const weatherRes = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+        `&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration` +
+        `&past_days=7&forecast_days=0&timezone=auto`,
+      { next: { revalidate: 3600 } }
+    );
+    if (!weatherRes.ok) return null;
+    const w = await weatherRes.json();
+    const d = w.daily;
+    if (!d) return null;
+
+    const lines: string[] = (d.time as string[]).map((date: string, i: number) => {
+      const tmax = d.temperature_2m_max[i];
+      const tmin = d.temperature_2m_min[i];
+      const rain = d.precipitation_sum[i] ?? 0;
+      const sunH = d.sunshine_duration[i] ? Math.round(d.sunshine_duration[i] / 3600) : 0;
+      return `  ${date}: ${tmin}–${tmax}°C, opady ${rain} mm, słońce ${sunH}h`;
+    });
+
+    return `Pogoda dla ${name} (${country}) – ostatnie 7 dni:\n${lines.join("\n")}`;
+  } catch {
+    return null;
+  }
+}
+
+async function buildPrompt(test: TestResult, volumeLiters: number, user?: User): Promise<string> {
   const measurements: string[] = [];
   if (test.ph !== undefined) measurements.push(`- pH: ${test.ph}`);
   if (test.freeCl !== undefined) measurements.push(`- Chlor wolny: ${test.freeCl} mg/l`);
@@ -23,6 +59,8 @@ function buildPrompt(test: TestResult, volumeLiters: number, user?: User): strin
     const label = user.sanitizer ? SANITIZER_LABELS[user.sanitizer] : "";
     const note = user.sanitizerNote ?? "";
     technical.push(`- Środek dezynfekujący: ${[label, note].filter(Boolean).join(" — ")}`);
+  } else if (user?.sanitizerNote) {
+    technical.push(`- Środek dezynfekujący: ${user.sanitizerNote}`);
   }
   if (user?.covered !== undefined) technical.push(`- Przykrycie basenu: ${user.covered ? "tak, basen jest przykrywany" : "nie, basen odkryty"}`);
   if (user?.heated !== undefined) technical.push(`- Podgrzewanie wody: ${user.heated ? "tak, woda jest podgrzewana" : "nie, bez ogrzewania"}`);
@@ -36,10 +74,18 @@ function buildPrompt(test: TestResult, volumeLiters: number, user?: User): strin
     prompt += `Dane techniczne basenu:\n${technical.join("\n")}\n\n`;
   }
 
+  if (user?.city) {
+    const weather = await fetchWeatherSummary(user.city);
+    if (weather) {
+      prompt += `${weather}\n\n`;
+    }
+  }
+
   prompt +=
     `Sprawdź w swojej bazie wiedzy czy jest coś do poprawy. Jeśli tak, zaproponuj konkretne rozwiązanie ` +
     `(jakie preparaty dodać i w jakiej przybliżonej ilości na ${volumeLiters.toLocaleString("pl-PL")} litrów). ` +
-    `Uwzględnij dane techniczne basenu przy dawkowaniu i rekomendacjach. ` +
+    `Uwzględnij dane techniczne basenu oraz warunki pogodowe przy dawkowaniu i rekomendacjach ` +
+    `(np. wysokie temperatury i intensywne nasłonecznienie przyspieszają rozkład chloru, intensywne opady mogą rozcieńczyć wodę). ` +
     `Odpowiedz po polsku, zwięźle i praktycznie.`;
 
   return prompt;
@@ -60,7 +106,7 @@ export async function POST(req: Request) {
       user?: User;
     };
 
-    const prompt = buildPrompt(test, volumeLiters, user);
+    const prompt = await buildPrompt(test, volumeLiters, user);
 
     const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
       method: "POST",

@@ -33,6 +33,10 @@ function buildPrompt(test: TestResult, volumeLiters: number, user?: User): strin
     prompt += `\n\nDane techniczne basenu:\n${tech.join("\n")}`;
   }
 
+  if (user?.city) {
+    prompt += `\n\nBasen znajduje się w: ${user.city}. Sprawdź pogodę dla tego miasta z ostatnich 7 dni i weź ją pod uwagę przy analizie (np. wysokie temperatury i nasłonecznienie rozkładają chlor, deszcz rozcieńcza wodę).`;
+  }
+
   prompt +=
     `\n\nSprawdź w swojej bazie wiedzy czy jest coś do poprawy. Jeśli tak, zaproponuj konkretne rozwiązanie ` +
     `(jakie preparaty dodać i w jakiej przybliżonej ilości na ${volumeLiters.toLocaleString("pl-PL")} litrów). ` +

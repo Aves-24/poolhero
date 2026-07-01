@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import type { FilterType, SanitizerType, TestResult, UsageLevel, User } from "@/lib/types";
-import { FILTER_LABELS, SANITIZER_LABELS, USAGE_LABELS } from "@/lib/types";
+import type { FilterType, TestResult, UsageLevel, User } from "@/lib/types";
+import { FILTER_LABELS, USAGE_LABELS } from "@/lib/types";
 import { analyzeTest, statusColor, statusLabel } from "@/lib/water";
 import TestWizard from "@/components/TestWizard";
 import ResultsTable from "@/components/ResultsTable";
@@ -26,11 +26,11 @@ export default function PoolPage() {
   const [name, setName] = useState("");
   const [volume, setVolume] = useState("");
   const [filterType, setFilterType] = useState<FilterType | "">("");
-  const [sanitizer, setSanitizer] = useState<SanitizerType | "">("");
   const [sanitizerNote, setSanitizerNote] = useState("");
   const [covered, setCovered] = useState<"" | "true" | "false">("");
   const [heated, setHeated] = useState<"" | "true" | "false">("");
   const [usage, setUsage] = useState<UsageLevel | "">("");
+  const [city, setCity] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
 
@@ -38,11 +38,11 @@ export default function PoolPage() {
     setName(u.name);
     setVolume(String(u.volumeLiters));
     setFilterType(u.filterType ?? "");
-    setSanitizer(u.sanitizer ?? "");
+    setSanitizerNote(u.sanitizerNote ?? "");
     setCovered(u.covered === true ? "true" : u.covered === false ? "false" : "");
     setHeated(u.heated === true ? "true" : u.heated === false ? "false" : "");
     setUsage(u.usage ?? "");
-    setSanitizerNote(u.sanitizerNote ?? "");
+    setCity(u.city ?? "");
   }
 
   async function loadUser() {
@@ -83,11 +83,11 @@ export default function PoolPage() {
     try {
       const body: Record<string, unknown> = { name, volumeLiters: Number(volume) };
       if (filterType) body.filterType = filterType;
-      if (sanitizer) body.sanitizer = sanitizer;
       if (covered !== "") body.covered = covered === "true";
       if (heated !== "") body.heated = heated === "true";
       if (usage) body.usage = usage;
       body.sanitizerNote = sanitizerNote;
+      body.city = city;
 
       const res = await fetch(`/api/users/${userId}`, {
         method: "PATCH",
@@ -201,19 +201,24 @@ export default function PoolPage() {
 
               <div>
                 <label className="label">Środek dezynfekujący</label>
-                <select className="input" value={sanitizer} onChange={(e) => setSanitizer(e.target.value as SanitizerType | "")}>
-                  <option value="">— nie podano —</option>
-                  {(Object.entries(SANITIZER_LABELS) as [SanitizerType, string][]).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
                 <input
-                  className="input mt-2"
-                  placeholder="Konkretny preparat, np. HTH Granulat 90%, Bayrol Chlorifix…"
+                  className="input"
+                  placeholder="Np. HTH Granulat 90%, Bayrol Chlorifix, aktywny tlen…"
                   value={sanitizerNote}
                   onChange={(e) => setSanitizerNote(e.target.value)}
                 />
                 <p className="text-xs text-slate-400 mt-1">Wpisz raz — zostanie zapamiętane i dołączone do analizy AI.</p>
+              </div>
+
+              <div>
+                <label className="label">Miasto (lokalizacja basenu)</label>
+                <input
+                  className="input"
+                  placeholder="Np. Warszawa, Kraków, Berlin…"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                />
+                <p className="text-xs text-slate-400 mt-1">Gemini pobierze pogodę z ostatnich 7 dni i uwzględni ją w analizie.</p>
               </div>
 
               <div>
