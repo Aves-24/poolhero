@@ -2,7 +2,40 @@
 
 import { useState } from "react";
 import type { TestResult, User } from "@/lib/types";
+import { FILTER_LABELS, SANITIZER_LABELS, USAGE_LABELS } from "@/lib/types";
 import { analyzeTest, statusColor, statusLabel } from "@/lib/water";
+
+function buildPrompt(test: TestResult, volumeLiters: number, user?: User): string {
+  const lines: string[] = [];
+  if (test.ph !== undefined) lines.push(`- pH: ${test.ph}`);
+  if (test.freeCl !== undefined) lines.push(`- Chlor wolny: ${test.freeCl} mg/l`);
+  if (test.totalCl !== undefined) lines.push(`- Chlor całkowity: ${test.totalCl} mg/l`);
+  if (test.combinedCl !== undefined) lines.push(`- Chlor związany: ${test.combinedCl} mg/l`);
+  if (test.alkalinity !== undefined) lines.push(`- Zasadowość (TA): ${test.alkalinity} mg/l`);
+  if (test.cya !== undefined) lines.push(`- Stabilizator (CYA): ${test.cya} mg/l`);
+
+  const tech: string[] = [];
+  if (user?.filterType) tech.push(`- Filtr: ${FILTER_LABELS[user.filterType]}`);
+  if (user?.sanitizer) tech.push(`- Dezynfekcja: ${SANITIZER_LABELS[user.sanitizer]}`);
+  if (user?.covered !== undefined) tech.push(`- Przykrycie: ${user.covered ? "tak" : "nie"}`);
+  if (user?.heated !== undefined) tech.push(`- Podgrzewanie: ${user.heated ? "tak" : "nie"}`);
+  if (user?.usage) tech.push(`- Użytkowanie: ${USAGE_LABELS[user.usage]}`);
+
+  let prompt =
+    `Jesteś ekspertem od domowych basenów. Mój basen ma ${volumeLiters.toLocaleString("pl-PL")} litrów wody.\n\n` +
+    `Zmierzyłem wartości wody i moje wyniki są następujące:\n${lines.join("\n")}`;
+
+  if (tech.length > 0) {
+    prompt += `\n\nDane techniczne basenu:\n${tech.join("\n")}`;
+  }
+
+  prompt +=
+    `\n\nSprawdź w swojej bazie wiedzy czy jest coś do poprawy. Jeśli tak, zaproponuj konkretne rozwiązanie ` +
+    `(jakie preparaty dodać i w jakiej przybliżonej ilości na ${volumeLiters.toLocaleString("pl-PL")} litrów). ` +
+    `Odpowiedz po polsku, zwięźle i praktycznie.`;
+
+  return prompt;
+}
 
 export default function ResultsTable({ test, volumeLiters, user }: { test: TestResult; volumeLiters: number; user?: User }) {
   const rows = analyzeTest(test, volumeLiters);
@@ -12,6 +45,7 @@ export default function ResultsTable({ test, volumeLiters, user }: { test: TestR
   const [aiText, setAiText] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   async function askGemini() {
     setAiLoading(true);
@@ -30,6 +64,21 @@ export default function ResultsTable({ test, volumeLiters, user }: { test: TestR
       setAiError((e as Error).message);
     } finally {
       setAiLoading(false);
+    }
+  }
+
+  async function sharePrompt() {
+    const text = buildPrompt(test, volumeLiters, user);
+    if (navigator.share) {
+      try {
+        await navigator.share({ text });
+      } catch {
+        // użytkownik anulował share sheet — nic nie rób
+      }
+    } else {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
     }
   }
 
@@ -87,52 +136,53 @@ export default function ResultsTable({ test, volumeLiters, user }: { test: TestR
         ) : (
           measured.map((r) => (
             <div key={r.key} className={`card p-3 text-sm ${statusColor(r.status)}`}>
-              <div className="font-medium">
-                {r.label}: {r.verdict}
-              </div>
+              <div className="font-medium">{r.label}: {r.verdict}</div>
               <div className="mt-0.5 opacity-90">{r.recommendation}</div>
             </div>
           ))
         )}
       </div>
 
-      {/* Gemini AI */}
-      <div className="pt-1">
+      {/* Przyciski AI */}
+      <div className="pt-1 flex gap-2">
         <button
           onClick={askGemini}
           disabled={aiLoading || measured.length === 0}
-          className="btn-secondary w-full gap-2 py-3"
+          className="btn-secondary flex-1 gap-2 py-3"
         >
           {aiLoading ? (
-            <>
-              <span className="inline-block animate-spin">✦</span>
-              Gemini analizuje…
-            </>
+            <><span className="inline-block animate-spin">✦</span> Gemini analizuje…</>
           ) : (
-            <>
-              <span>✨</span>
-              Zapytaj Gemini o analizę AI
-            </>
+            <><span>✨</span> Zapytaj Gemini AI</>
           )}
         </button>
 
-        {aiError && (
-          <div className="card border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm mt-3">
-            {aiError}
-          </div>
-        )}
-
-        {aiText && (
-          <div className="card p-4 mt-3 border-pool-200 bg-pool-50">
-            <div className="flex items-center gap-2 mb-2 text-pool-700 font-semibold text-sm">
-              <span>✨</span> Analiza Gemini AI
-            </div>
-            <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-              {aiText}
-            </div>
-          </div>
-        )}
+        <button
+          onClick={sharePrompt}
+          disabled={measured.length === 0}
+          className="btn-secondary gap-2 py-3 px-4"
+          title="Udostępnij prompt (WhatsApp, schowek…)"
+        >
+          {copied ? "✓ Skopiowano" : <><span>📤</span> Udostępnij</>}
+        </button>
       </div>
+
+      {aiError && (
+        <div className="card border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">
+          {aiError}
+        </div>
+      )}
+
+      {aiText && (
+        <div className="card p-4 border-pool-200 bg-pool-50">
+          <div className="flex items-center gap-2 mb-2 text-pool-700 font-semibold text-sm">
+            <span>✨</span> Analiza Gemini AI
+          </div>
+          <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+            {aiText}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
