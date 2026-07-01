@@ -26,6 +26,7 @@ export default function PoolPage() {
   const [volume, setVolume] = useState("");
   const [filterType, setFilterType] = useState<FilterType | "">("");
   const [sanitizer, setSanitizer] = useState<SanitizerType | "">("");
+  const [sanitizerNote, setSanitizerNote] = useState("");
   const [covered, setCovered] = useState<"" | "true" | "false">("");
   const [heated, setHeated] = useState<"" | "true" | "false">("");
   const [usage, setUsage] = useState<UsageLevel | "">("");
@@ -40,6 +41,7 @@ export default function PoolPage() {
     setCovered(u.covered === true ? "true" : u.covered === false ? "false" : "");
     setHeated(u.heated === true ? "true" : u.heated === false ? "false" : "");
     setUsage(u.usage ?? "");
+    setSanitizerNote(u.sanitizerNote ?? "");
   }
 
   async function loadUser() {
@@ -84,6 +86,7 @@ export default function PoolPage() {
       if (covered !== "") body.covered = covered === "true";
       if (heated !== "") body.heated = heated === "true";
       if (usage) body.usage = usage;
+      body.sanitizerNote = sanitizerNote;
 
       const res = await fetch(`/api/users/${userId}`, {
         method: "PATCH",
@@ -185,6 +188,13 @@ export default function PoolPage() {
                     <option key={k} value={k}>{v}</option>
                   ))}
                 </select>
+                <input
+                  className="input mt-2"
+                  placeholder="Konkretny preparat, np. HTH Granulat 90%, Bayrol Chlorifix…"
+                  value={sanitizerNote}
+                  onChange={(e) => setSanitizerNote(e.target.value)}
+                />
+                <p className="text-xs text-slate-400 mt-1">Wpisz raz — zostanie zapamiętane i dołączone do analizy AI.</p>
               </div>
 
               <div>

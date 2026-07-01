@@ -16,7 +16,11 @@ function buildPrompt(test: TestResult, volumeLiters: number, user?: User): strin
 
   const tech: string[] = [];
   if (user?.filterType) tech.push(`- Filtr: ${FILTER_LABELS[user.filterType]}`);
-  if (user?.sanitizer) tech.push(`- Dezynfekcja: ${SANITIZER_LABELS[user.sanitizer]}`);
+  if (user?.sanitizer || user?.sanitizerNote) {
+    const label = user.sanitizer ? SANITIZER_LABELS[user.sanitizer] : "";
+    const note = user.sanitizerNote ?? "";
+    tech.push(`- Dezynfekcja: ${[label, note].filter(Boolean).join(" — ")}`);
+  }
   if (user?.covered !== undefined) tech.push(`- Przykrycie: ${user.covered ? "tak" : "nie"}`);
   if (user?.heated !== undefined) tech.push(`- Podgrzewanie: ${user.heated ? "tak" : "nie"}`);
   if (user?.usage) tech.push(`- Użytkowanie: ${USAGE_LABELS[user.usage]}`);

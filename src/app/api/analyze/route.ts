@@ -19,7 +19,11 @@ function buildPrompt(test: TestResult, volumeLiters: number, user?: User): strin
 
   const technical: string[] = [];
   if (user?.filterType) technical.push(`- Typ filtra: ${FILTER_LABELS[user.filterType]}`);
-  if (user?.sanitizer) technical.push(`- Środek dezynfekujący: ${SANITIZER_LABELS[user.sanitizer]}`);
+  if (user?.sanitizer || user?.sanitizerNote) {
+    const label = user.sanitizer ? SANITIZER_LABELS[user.sanitizer] : "";
+    const note = user.sanitizerNote ?? "";
+    technical.push(`- Środek dezynfekujący: ${[label, note].filter(Boolean).join(" — ")}`);
+  }
   if (user?.covered !== undefined) technical.push(`- Przykrycie basenu: ${user.covered ? "tak, basen jest przykrywany" : "nie, basen odkryty"}`);
   if (user?.heated !== undefined) technical.push(`- Podgrzewanie wody: ${user.heated ? "tak, woda jest podgrzewana" : "nie, bez ogrzewania"}`);
   if (user?.usage) technical.push(`- Intensywność użytkowania: ${USAGE_LABELS[user.usage]}`);

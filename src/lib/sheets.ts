@@ -40,7 +40,7 @@ function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
 
-const USERS_HEADER = ["id", "name", "volumeLiters", "createdAt", "filterType", "sanitizer", "covered", "heated", "usage"];
+const USERS_HEADER = ["id", "name", "volumeLiters", "createdAt", "filterType", "sanitizer", "covered", "heated", "usage", "sanitizerNote"];
 const TESTS_HEADER = ["id", "userId", "createdAt", "ph", "freeCl", "totalCl", "combinedCl", "alkalinity", "cya", "note"];
 
 let initialized = false;
@@ -129,7 +129,7 @@ export async function getUsers(): Promise<User[]> {
   const sheets = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${USERS_TAB}!A2:I`,
+    range: `${USERS_TAB}!A2:J`,
     valueRenderOption: "UNFORMATTED_VALUE",
   });
   const rows = res.data.values || [];
@@ -145,11 +145,12 @@ export async function getUsers(): Promise<User[]> {
       covered: r[6] === true || r[6] === "true" || r[6] === 1 || r[6] === "1" ? true : r[6] === false || r[6] === "false" ? false : undefined,
       heated: r[7] === true || r[7] === "true" || r[7] === 1 || r[7] === "1" ? true : r[7] === false || r[7] === "false" ? false : undefined,
       usage: (r[8] as User["usage"]) || undefined,
+      sanitizerNote: r[9] ? String(r[9]) : undefined,
     }));
 }
 
 export async function addUser(input: NewUser): Promise<User> {
-  const user: User = { id: id(), name: input.name, volumeLiters: input.volumeLiters, createdAt: new Date().toISOString(), filterType: input.filterType, sanitizer: input.sanitizer, covered: input.covered, heated: input.heated, usage: input.usage };
+  const user: User = { id: id(), name: input.name, volumeLiters: input.volumeLiters, createdAt: new Date().toISOString(), filterType: input.filterType, sanitizer: input.sanitizer, covered: input.covered, heated: input.heated, usage: input.usage, sanitizerNote: input.sanitizerNote };
   if (!useSheets) {
     const db = await readJson();
     db.users.push(user);
@@ -160,9 +161,9 @@ export async function addUser(input: NewUser): Promise<User> {
   const sheets = getSheetsClient();
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: `${USERS_TAB}!A:I`,
+    range: `${USERS_TAB}!A:J`,
     valueInputOption: "RAW",
-    requestBody: { values: [[user.id, user.name, user.volumeLiters, user.createdAt, user.filterType ?? "", user.sanitizer ?? "", user.covered ?? "", user.heated ?? "", user.usage ?? ""]] },
+    requestBody: { values: [[user.id, user.name, user.volumeLiters, user.createdAt, user.filterType ?? "", user.sanitizer ?? "", user.covered ?? "", user.heated ?? "", user.usage ?? "", user.sanitizerNote ?? ""]] },
   });
   return user;
 }
@@ -179,7 +180,7 @@ export async function updateUser(userId: string, patch: Partial<NewUser>): Promi
   }
   await ensureSheets();
   const sheets = getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${USERS_TAB}!A2:I`, valueRenderOption: "UNFORMATTED_VALUE" });
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${USERS_TAB}!A2:J`, valueRenderOption: "UNFORMATTED_VALUE" });
   const rows = res.data.values || [];
   const idx = rows.findIndex((r) => String(r[0]) === userId);
   if (idx < 0) return null;
@@ -200,13 +201,14 @@ export async function updateUser(userId: string, patch: Partial<NewUser>): Promi
     covered: boolPatch(patch.covered, row[6]),
     heated: boolPatch(patch.heated, row[7]),
     usage: (patch.usage !== undefined ? patch.usage : (row[8] as User["usage"])) || undefined,
+    sanitizerNote: patch.sanitizerNote !== undefined ? patch.sanitizerNote || undefined : (row[9] ? String(row[9]) : undefined),
   };
   const rowNumber = idx + 2;
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: `${USERS_TAB}!A${rowNumber}:I${rowNumber}`,
+    range: `${USERS_TAB}!A${rowNumber}:J${rowNumber}`,
     valueInputOption: "RAW",
-    requestBody: { values: [[updated.id, updated.name, updated.volumeLiters, updated.createdAt, updated.filterType ?? "", updated.sanitizer ?? "", updated.covered ?? "", updated.heated ?? "", updated.usage ?? ""]] },
+    requestBody: { values: [[updated.id, updated.name, updated.volumeLiters, updated.createdAt, updated.filterType ?? "", updated.sanitizer ?? "", updated.covered ?? "", updated.heated ?? "", updated.usage ?? "", updated.sanitizerNote ?? ""]] },
   });
   return updated;
 }

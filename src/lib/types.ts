@@ -38,6 +38,8 @@ export interface User {
   heated?: boolean;
   /** Intensywność użytkowania */
   usage?: UsageLevel;
+  /** Własny opis preparatu dezynfekującego (np. "HTH Granulat 90%", "Bayrol Chlorifix") */
+  sanitizerNote?: string;
 }
 
 export interface TestResult {
