@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { TestResult, User } from "@/lib/types";
 import { buildSteps, FULL_TEST_KEYS, QUICK_TEST_KEYS, measureOptions, MeasureKey, InputField } from "@/lib/reagents";
 import { useLocale } from "@/lib/i18n/LocaleContext";
+import { useWakeLock } from "@/lib/useWakeLock";
 import ResultsTable from "./ResultsTable";
 
 type Mode = "choose" | "single-select" | "running" | "done";
@@ -30,6 +31,8 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
   const steps = useMemo(() => (keys.length ? buildSteps(keys, locale) : []), [keys, locale]);
   const options = useMemo(() => measureOptions(locale), [locale]);
   const current = steps[stepIdx];
+
+  useWakeLock(mode === "running");
 
   function startFull() {
     setKeys(FULL_TEST_KEYS);
