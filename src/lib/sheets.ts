@@ -34,7 +34,7 @@ function withCombined(t: TestResult): TestResult {
 function getSheetsClient() {
   const auth = new google.auth.JWT({
     email: SA_EMAIL,
-    key: (SA_KEY || "").replace(/\\n/g, "\n"),
+    key: (SA_KEY || "").replace(/^"/, "").replace(/"$/, "").replace(/\\n/g, "\n"),
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
   return google.sheets({ version: "v4", auth });
