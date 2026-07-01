@@ -4,18 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import type { TestResult, User } from "@/lib/types";
-
-function lastTestLabel(createdAt: string | undefined): string {
-  if (!createdAt) return "Brak testów";
-  const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / 86_400_000);
-  if (days === 0) return "Ostatni test: dzisiaj";
-  if (days === 1) return "Ostatni test: 1 dzień temu";
-  return `Ostatni test: ${days} dni temu`;
-}
+import { useLocale } from "@/lib/i18n/LocaleContext";
 
 export default function HomePage() {
   const router = useRouter();
   const { data: session } = useSession();
+  const { t } = useLocale();
   const [users, setUsers] = useState<User[]>([]);
   const [lastTestByUser, setLastTestByUser] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -24,6 +18,14 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [open, setOpen] = useState(false);
+
+  function lastTestLabel(createdAt: string | undefined): string {
+    if (!createdAt) return t("home.noTests");
+    const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / 86_400_000);
+    if (days === 0) return t("home.lastTestToday");
+    if (days === 1) return t("home.lastTestOneDay");
+    return t("home.lastTestDaysAgo", { n: days });
+  }
 
   async function load() {
     setLoading(true);
@@ -34,14 +36,14 @@ export default function HomePage() {
       ]);
       const usersData: User[] = await usersRes.json();
       const testsData: TestResult[] = await testsRes.json();
-      if (!usersRes.ok) throw new Error((usersData as unknown as { error: string }).error || "Błąd ładowania");
+      if (!usersRes.ok) throw new Error((usersData as unknown as { error: string }).error || t("home.loadError"));
 
       setUsers(usersData);
 
       // Testy są już posortowane malejąco — pierwszy trafiony dla każdego userId to najnowszy
       const map: Record<string, string> = {};
-      testsData.forEach((t) => {
-        if (!map[t.userId]) map[t.userId] = t.createdAt;
+      testsData.forEach((tst) => {
+        if (!map[tst.userId]) map[tst.userId] = tst.createdAt;
       });
       setLastTestByUser(map);
     } catch (e) {
@@ -64,7 +66,7 @@ export default function HomePage() {
         body: JSON.stringify({ name, volumeLiters: Number(volume) }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Nie udało się dodać profilu");
+      if (!res.ok) throw new Error(data.error || t("home.addError"));
       setName("");
       setVolume("");
       setUsers((u) => [...u, data]);
@@ -80,13 +82,13 @@ export default function HomePage() {
     <div className="space-y-6 pb-24">
       <section className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Wybierz profil basenu</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{t("home.title")}</h1>
         </div>
         {session?.user && (
           <div className="text-right flex-shrink-0">
             <div className="text-xs text-slate-400 max-w-[10rem] truncate">{session.user.email}</div>
             <button onClick={() => signOut()} className="text-xs text-slate-500 hover:text-rose-600 transition mt-0.5">
-              Wyloguj
+              {t("home.signOut")}
             </button>
           </div>
         )}
@@ -96,9 +98,9 @@ export default function HomePage() {
 
       <section className="grid gap-3 sm:grid-cols-2">
         {loading ? (
-          <div className="text-slate-400">Ładowanie…</div>
+          <div className="text-slate-400">{t("home.loading")}</div>
         ) : users.length === 0 ? (
-          <div className="text-slate-400 col-span-full">Brak profili. Dodaj pierwszy przyciskiem + poniżej.</div>
+          <div className="text-slate-400 col-span-full">{t("home.noProfiles")}</div>
         ) : (
           users.map((u) => (
             <button
@@ -134,33 +136,33 @@ export default function HomePage() {
         >
           <div className="card p-5 w-full max-w-sm shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-slate-800">Nowy profil basenu</h2>
+              <h2 className="font-semibold text-slate-800">{t("home.newProfileTitle")}</h2>
               <button onClick={() => setOpen(false)} className="btn-ghost px-2 text-slate-400">✕</button>
             </div>
             <form onSubmit={addUser} className="space-y-3">
               <div>
-                <label className="label">Nazwa profilu</label>
+                <label className="label">{t("home.profileName")}</label>
                 <input
                   className="input"
-                  placeholder="np. Basen ogród"
+                  placeholder={t("home.profileNamePlaceholder")}
                   value={name}
                   autoFocus
                   onChange={(e) => setName(e.target.value)}
                 />
               </div>
               <div>
-                <label className="label">Objętość wody (litry)</label>
+                <label className="label">{t("home.volumeLabel")}</label>
                 <input
                   className="input"
                   type="number"
                   min={1}
-                  placeholder="np. 24000"
+                  placeholder={t("home.volumePlaceholder")}
                   value={volume}
                   onChange={(e) => setVolume(e.target.value)}
                 />
               </div>
               <button className="btn-primary w-full mt-1" disabled={saving}>
-                {saving ? "Zapisuję…" : "Dodaj profil"}
+                {saving ? t("home.saving") : t("home.addProfile")}
               </button>
             </form>
           </div>
@@ -171,7 +173,7 @@ export default function HomePage() {
       <button
         onClick={() => setOpen(true)}
         className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-pool-600 text-white shadow-lg hover:bg-pool-700 active:scale-95 transition flex items-center justify-center text-3xl leading-none"
-        title="Dodaj profil"
+        title={t("home.addProfile")}
       >
         +
       </button>

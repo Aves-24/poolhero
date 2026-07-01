@@ -1,11 +1,11 @@
 import type { TestResult } from "./types";
+import { t, paramLabel, statusLabelText, type Locale } from "./i18n/translations";
 
 export type ParamKey = "ph" | "freeCl" | "combinedCl" | "alkalinity" | "cya";
 export type Status = "ok" | "low" | "high" | "missing";
 
 export interface ParamConfig {
   key: ParamKey;
-  label: string;
   unit: string;
   /** Zakres docelowy (norma basenu prywatnego) */
   min: number;
@@ -15,11 +15,11 @@ export interface ParamConfig {
 
 /** Normy dla typowego basenu prywatnego */
 export const PARAMS: ParamConfig[] = [
-  { key: "ph", label: "pH", unit: "", min: 7.0, max: 7.4, ideal: 7.2 },
-  { key: "freeCl", label: "Chlor wolny", unit: "mg/l", min: 1.0, max: 3.0, ideal: 2.0 },
-  { key: "combinedCl", label: "Chlor związany", unit: "mg/l", min: 0, max: 0.2, ideal: 0 },
-  { key: "alkalinity", label: "Zasadowość (TA)", unit: "mg/l", min: 80, max: 120, ideal: 100 },
-  { key: "cya", label: "Stabilizator (CYA)", unit: "mg/l", min: 30, max: 50, ideal: 40 },
+  { key: "ph", unit: "", min: 7.0, max: 7.4, ideal: 7.2 },
+  { key: "freeCl", unit: "mg/l", min: 1.0, max: 3.0, ideal: 2.0 },
+  { key: "combinedCl", unit: "mg/l", min: 0, max: 0.2, ideal: 0 },
+  { key: "alkalinity", unit: "mg/l", min: 80, max: 120, ideal: 100 },
+  { key: "cya", unit: "mg/l", min: 30, max: 50, ideal: 40 },
 ];
 
 export interface Analysis {
@@ -53,19 +53,20 @@ function fmtDose(grams: number): string {
  * Dawki są PRZYBLIŻONE i zależą od stężenia konkretnego preparatu —
  * zawsze sprawdź etykietę produktu.
  */
-export function analyzeParam(cfg: ParamConfig, value: number | undefined, volumeLiters: number): Analysis {
+export function analyzeParam(cfg: ParamConfig, value: number | undefined, volumeLiters: number, locale: Locale): Analysis {
   const m3 = (volumeLiters || 0) / 1000;
+  const label = paramLabel(locale, cfg.key);
   const base: Analysis = {
     key: cfg.key,
-    label: cfg.label,
+    label,
     unit: cfg.unit,
     value,
     min: cfg.min,
     max: cfg.max,
     ideal: cfg.ideal,
     status: "missing",
-    verdict: "Brak pomiaru",
-    recommendation: "Nie zmierzono tego parametru.",
+    verdict: t(locale, "verdict.missing"),
+    recommendation: t(locale, "recommendation.missing"),
   };
 
   if (value === undefined || Number.isNaN(value)) return base;
@@ -74,19 +75,19 @@ export function analyzeParam(cfg: ParamConfig, value: number | undefined, volume
   if (value < cfg.min) status = "low";
   else if (value > cfg.max) status = "high";
 
-  let verdict = "W normie ✓";
-  let recommendation = "Brak działań — wartość w normie.";
+  let verdict = t(locale, "verdict.ok");
+  let recommendation = t(locale, "recommendation.ok");
 
   switch (cfg.key) {
     case "ph": {
       if (status === "high") {
         const grams = m3 * 10 * ((value - cfg.ideal) / 0.1);
-        verdict = "Za wysokie pH";
-        recommendation = `Dodaj ok. ${fmtDose(grams)} preparatu pH‑Minus, aby obniżyć pH do ~${cfg.ideal}.`;
+        verdict = t(locale, "verdict.ph.high");
+        recommendation = t(locale, "recommendation.ph.high", { dose: fmtDose(grams), ideal: cfg.ideal });
       } else if (status === "low") {
         const grams = m3 * 10 * ((cfg.ideal - value) / 0.1);
-        verdict = "Za niskie pH";
-        recommendation = `Dodaj ok. ${fmtDose(grams)} preparatu pH‑Plus, aby podnieść pH do ~${cfg.ideal}.`;
+        verdict = t(locale, "verdict.ph.low");
+        recommendation = t(locale, "recommendation.ph.low", { dose: fmtDose(grams), ideal: cfg.ideal });
       }
       break;
     }
@@ -94,47 +95,43 @@ export function analyzeParam(cfg: ParamConfig, value: number | undefined, volume
       if (status === "low") {
         const delta = cfg.ideal - value;
         const grams = m3 * 1.5 * delta;
-        verdict = "Za mało chloru";
-        recommendation = `Dodaj ok. ${fmtDose(grams)} chloru (granulat szybki ~60%), aby podnieść do ~${cfg.ideal} mg/l.`;
+        verdict = t(locale, "verdict.freeCl.low");
+        recommendation = t(locale, "recommendation.freeCl.low", { dose: fmtDose(grams), ideal: cfg.ideal });
       } else if (status === "high") {
-        verdict = "Za dużo chloru";
-        recommendation =
-          "Nie dodawaj chloru. Wstrzymaj dozowanie i poczekaj, aż poziom spadnie (kąpiel dozwolona poniżej 3 mg/l). Możesz częściowo wymienić wodę.";
+        verdict = t(locale, "verdict.freeCl.high");
+        recommendation = t(locale, "recommendation.freeCl.high");
       }
       break;
     }
     case "combinedCl": {
       if (status === "high") {
-        verdict = "Za dużo chloramin";
-        recommendation =
-          "Wykonaj chlorowanie szokowe (przebicie): podnieś chlor wolny ~10× powyżej chloru związanego, aby rozbić chloraminy. Zadbaj o wentylację.";
+        verdict = t(locale, "verdict.combinedCl.high");
+        recommendation = t(locale, "recommendation.combinedCl.high");
       } else {
-        verdict = "W normie ✓";
-        recommendation = "Brak działań — niski poziom chloramin.";
+        verdict = t(locale, "verdict.ok");
+        recommendation = t(locale, "recommendation.combinedCl.ok");
       }
       break;
     }
     case "alkalinity": {
       if (status === "low") {
         const grams = m3 * 1.7 * (cfg.ideal - value);
-        verdict = "Za niska zasadowość";
-        recommendation = `Dodaj ok. ${fmtDose(grams)} preparatu Alka‑Plus (wodorowęglan sodu), aby podnieść do ~${cfg.ideal} mg/l.`;
+        verdict = t(locale, "verdict.alkalinity.low");
+        recommendation = t(locale, "recommendation.alkalinity.low", { dose: fmtDose(grams), ideal: cfg.ideal });
       } else if (status === "high") {
-        verdict = "Za wysoka zasadowość";
-        recommendation =
-          "Obniż zasadowość preparatem pH‑Minus (kwas) dozowanym partiami, kontrolując pH. Wysoka TA utrudnia stabilizację pH.";
+        verdict = t(locale, "verdict.alkalinity.high");
+        recommendation = t(locale, "recommendation.alkalinity.high");
       }
       break;
     }
     case "cya": {
       if (status === "low") {
         const grams = m3 * 1.0 * (cfg.ideal - value);
-        verdict = "Za mało stabilizatora";
-        recommendation = `Dodaj ok. ${fmtDose(grams)} stabilizatora (kwas cyjanurowy), aby podnieść CYA do ~${cfg.ideal} mg/l. Dozuj powoli przez skimmer.`;
+        verdict = t(locale, "verdict.cya.low");
+        recommendation = t(locale, "recommendation.cya.low", { dose: fmtDose(grams), ideal: cfg.ideal });
       } else if (status === "high") {
-        verdict = "Za dużo stabilizatora";
-        recommendation =
-          "Stabilizatora nie da się usunąć chemicznie — częściowo wymień wodę (rozcieńczenie), aby obniżyć CYA. Zbyt wysoki CYA osłabia działanie chloru.";
+        verdict = t(locale, "verdict.cya.high");
+        recommendation = t(locale, "recommendation.cya.high");
       }
       break;
     }
@@ -144,7 +141,7 @@ export function analyzeParam(cfg: ParamConfig, value: number | undefined, volume
 }
 
 /** Pełna analiza wyniku testu względem objętości basenu */
-export function analyzeTest(test: TestResult, volumeLiters: number): Analysis[] {
+export function analyzeTest(test: TestResult, volumeLiters: number, locale: Locale): Analysis[] {
   const values: Record<ParamKey, number | undefined> = {
     ph: test.ph,
     freeCl: test.freeCl,
@@ -152,7 +149,7 @@ export function analyzeTest(test: TestResult, volumeLiters: number): Analysis[] 
     alkalinity: test.alkalinity,
     cya: test.cya,
   };
-  return PARAMS.map((cfg) => analyzeParam(cfg, values[cfg.key], volumeLiters));
+  return PARAMS.map((cfg) => analyzeParam(cfg, values[cfg.key], volumeLiters, locale));
 }
 
 export function statusColor(status: Status): string {
@@ -168,15 +165,6 @@ export function statusColor(status: Status): string {
   }
 }
 
-export function statusLabel(status: Status): string {
-  switch (status) {
-    case "ok":
-      return "OK";
-    case "low":
-      return "Za mało";
-    case "high":
-      return "Za dużo";
-    default:
-      return "—";
-  }
+export function statusLabel(status: Status, locale: Locale): string {
+  return statusLabelText(locale, status);
 }

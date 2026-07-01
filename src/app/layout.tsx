@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import AuthGate from "@/components/AuthGate";
 import Providers from "@/components/Providers";
+import Footer from "@/components/Footer";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { LocaleProvider } from "@/lib/i18n/LocaleContext";
 
 export const metadata: Metadata = {
   title: "PoolHero — analiza wody basenowej",
@@ -19,21 +22,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pl">
       <body>
         <Providers>
-        <AuthGate>
-          <header className="border-b border-pool-100 bg-white/70 backdrop-blur sticky top-0 z-10">
-            <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-2">
-              <span className="text-2xl">💧</span>
-              <a href="/" className="font-bold text-lg text-pool-800">
-                PoolHero
-              </a>
-              <span className="ml-auto text-xs text-slate-400">PoolLab 1.0</span>
-            </div>
-          </header>
-          <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
-          <footer className="mx-auto max-w-3xl px-4 py-8 text-center text-xs text-slate-400">
-            Dawki są przybliżone — zawsze sprawdzaj etykietę preparatu. Normy: basen prywatny.
-          </footer>
-        </AuthGate>
+          <LocaleProvider>
+            <AuthGate>
+              <header className="border-b border-pool-100 bg-white/70 backdrop-blur sticky top-0 z-10">
+                <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-2">
+                  <span className="text-2xl">💧</span>
+                  <a href="/" className="font-bold text-lg text-pool-800">
+                    PoolHero
+                  </a>
+                  <span className="ml-auto text-xs text-slate-400">PoolLab 1.0</span>
+                  <LanguageSwitcher />
+                </div>
+              </header>
+              <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>
+              <Footer />
+            </AuthGate>
+          </LocaleProvider>
         </Providers>
       </body>
     </html>

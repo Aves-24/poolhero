@@ -2,36 +2,23 @@
 
 import { useMemo, useState } from "react";
 import type { TestResult, User } from "@/lib/types";
-import { buildSteps, FULL_TEST_KEYS, QUICK_TEST_KEYS, MEASURE_OPTIONS, MeasureKey, InputField } from "@/lib/reagents";
+import { buildSteps, FULL_TEST_KEYS, QUICK_TEST_KEYS, measureOptions, MeasureKey, InputField } from "@/lib/reagents";
+import { useLocale } from "@/lib/i18n/LocaleContext";
 import ResultsTable from "./ResultsTable";
 
 type Mode = "choose" | "single-select" | "running" | "done";
 type Values = Partial<Record<InputField, string>>;
 
-const FIELD_INFO: Partial<Record<InputField, { purpose: string; range: string }>> = {
-  ph: {
-    purpose: "Odczyn kwasowości wody. Wpływa na skuteczność chloru i komfort pływania — przy złym pH chlor traci działanie nawet przy prawidłowym stężeniu.",
-    range: "Ideał: 7,2 · Norma: 7,0 – 7,4",
-  },
-  freeCl: {
-    purpose: "Aktywny chlor dezynfekujący wodę. Za mało = brak ochrony przed bakteriami, za dużo = podrażnienia skóry i oczu.",
-    range: "Ideał: 2,0 mg/l · Norma: 1,0 – 3,0 mg/l",
-  },
-  totalCl: {
-    purpose: "Chlor całkowity = wolny + związany (chloraminy). Aplikacja wyliczy sam chlor związany — to on powoduje charakterystyczny zapach basenu i podrażnienia.",
-    range: "Chlor związany (różnica) max 0,2 mg/l · Im bliżej chloru wolnego, tym lepiej",
-  },
-  alkalinity: {
-    purpose: "Bufor stabilizujący pH. Wysoka zasadowość sprawia, że pH jest odporne na skoki po dodaniu chemii lub po deszczu.",
-    range: "Ideał: 100 mg/l · Norma: 80 – 120 mg/l",
-  },
-  cya: {
-    purpose: "Stabilizator chroni chlor przed rozkładem przez promieniowanie UV (słońce). Bez niego chlor w słoneczny dzień może zniknąć w ciągu kilku godzin.",
-    range: "Ideał: 40 mg/l · Norma: 30 – 50 mg/l",
-  },
+const FIELD_INFO_KEYS: Partial<Record<InputField, { purpose: string; range: string }>> = {
+  ph: { purpose: "fieldInfo.ph.purpose", range: "fieldInfo.ph.range" },
+  freeCl: { purpose: "fieldInfo.freeCl.purpose", range: "fieldInfo.freeCl.range" },
+  totalCl: { purpose: "fieldInfo.totalCl.purpose", range: "fieldInfo.totalCl.range" },
+  alkalinity: { purpose: "fieldInfo.alkalinity.purpose", range: "fieldInfo.alkalinity.range" },
+  cya: { purpose: "fieldInfo.cya.purpose", range: "fieldInfo.cya.range" },
 };
 
 export default function TestWizard({ user, onSaved }: { user: User; onSaved: () => void }) {
+  const { locale, t } = useLocale();
   const [mode, setMode] = useState<Mode>("choose");
   const [keys, setKeys] = useState<MeasureKey[]>([]);
   const [stepIdx, setStepIdx] = useState(0);
@@ -40,7 +27,8 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
   const [error, setError] = useState<string | null>(null);
   const [savedTest, setSavedTest] = useState<TestResult | null>(null);
 
-  const steps = useMemo(() => (keys.length ? buildSteps(keys) : []), [keys]);
+  const steps = useMemo(() => (keys.length ? buildSteps(keys, locale) : []), [keys, locale]);
+  const options = useMemo(() => measureOptions(locale), [locale]);
   const current = steps[stepIdx];
 
   function startFull() {
@@ -91,7 +79,7 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Nie udało się zapisać testu");
+      if (!res.ok) throw new Error(data.error || t("wizard.saveError"));
       setSavedTest(data);
       setMode("done");
       onSaved();
@@ -117,20 +105,20 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
     return (
       <div className="space-y-3">
         <button onClick={startFull} className="card p-5 w-full text-left hover:border-pool-300 transition">
-          <div className="text-lg font-semibold text-pool-800">🧪 Pełny test</div>
+          <div className="text-lg font-semibold text-pool-800">{t("wizard.fullTest")}</div>
           <div className="text-slate-500 text-sm mt-1">
-            Tabletki: Phenol Red · DPD No. 1 · DPD No. 3 · Alkalinity-M · CYA Test
+            {t("wizard.tablets")} Phenol Red · DPD No. 1 · DPD No. 3 · Alkalinity-M · CYA Test
           </div>
         </button>
         <button onClick={startQuick} className="card p-5 w-full text-left hover:border-pool-300 transition">
-          <div className="text-lg font-semibold text-slate-800">⚡ Szybki test</div>
+          <div className="text-lg font-semibold text-slate-800">{t("wizard.quickTest")}</div>
           <div className="text-slate-500 text-sm mt-1">
-            Tabletki: Phenol Red · DPD No. 1 · DPD No. 3
+            {t("wizard.tablets")} Phenol Red · DPD No. 1 · DPD No. 3
           </div>
         </button>
         <button onClick={() => setMode("single-select")} className="card p-5 w-full text-left hover:border-pool-300 transition">
-          <div className="text-lg font-semibold text-slate-800">🔬 Pojedynczy pomiar</div>
-          <div className="text-slate-500 text-sm mt-1">Wybierz jeden parametr do zmierzenia.</div>
+          <div className="text-lg font-semibold text-slate-800">{t("wizard.singleMeasure")}</div>
+          <div className="text-slate-500 text-sm mt-1">{t("wizard.singleMeasureDesc")}</div>
         </button>
       </div>
     );
@@ -140,13 +128,13 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
     return (
       <div className="space-y-3">
         <button onClick={reset} className="btn-ghost text-sm">
-          ← Wróć
+          {t("wizard.back")}
         </button>
         <div className="grid gap-3 sm:grid-cols-2">
-          {MEASURE_OPTIONS.map((o) => (
+          {options.map((o) => (
             <button key={o.key} onClick={() => startSingle(o.key)} className="card p-4 text-left hover:border-pool-300 transition">
               <div className="font-semibold text-slate-800">{o.label}</div>
-              <div className="text-sm text-slate-500 mt-1">Tabletka: {o.reagent}</div>
+              <div className="text-sm text-slate-500 mt-1">{t("wizard.tabletLabel")} {o.reagent}</div>
             </button>
           ))}
         </div>
@@ -159,14 +147,13 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
     const field = current.field;
     const filled = !isInput || (field !== undefined && values[field] !== undefined && values[field] !== "");
     const progress = Math.round(((stepIdx + 1) / steps.length) * 100);
+    const fieldInfoKeys = field ? FIELD_INFO_KEYS[field] : undefined;
 
     return (
       <div className="space-y-4">
         <div>
           <div className="flex justify-between text-xs text-slate-400 mb-1">
-            <span>
-              Krok {stepIdx + 1} z {steps.length}
-            </span>
+            <span>{t("wizard.stepOf", { cur: stepIdx + 1, total: steps.length })}</span>
             <span>{progress}%</span>
           </div>
           <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -176,14 +163,14 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
 
         <div className="card p-5">
           <div className={`text-xs font-medium uppercase tracking-wide ${isInput ? "text-pool-600" : "text-slate-400"}`}>
-            {isInput ? "Pomiar" : "Instrukcja"}
+            {isInput ? t("wizard.measurement") : t("wizard.instruction")}
           </div>
           <h3 className="text-lg font-semibold text-slate-800 mt-1">{current.title}</h3>
           <p className="text-slate-600 mt-2 leading-relaxed">{current.body}</p>
 
           {isInput && field && (
             <div className="mt-4">
-              <label className="label">Wpisz wynik z wyświetlacza {current.unit ? `(${current.unit})` : ""}</label>
+              <label className="label">{t("wizard.enterResult")} {current.unit ? `(${current.unit})` : ""}</label>
               <input
                 className="input text-lg"
                 type="number"
@@ -207,22 +194,22 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
         <div className="flex gap-2">
           {stepIdx > 0 ? (
             <button onClick={back} className="btn-secondary">
-              ← Wstecz
+              {t("wizard.stepBack")}
             </button>
           ) : (
             <button onClick={reset} className="btn-ghost">
-              Anuluj
+              {t("wizard.cancel")}
             </button>
           )}
           <button onClick={next} disabled={!filled || saving} className="btn-primary ml-auto">
-            {stepIdx === steps.length - 1 ? (saving ? "Zapisuję…" : "Zakończ i pokaż wynik") : "Dalej →"}
+            {stepIdx === steps.length - 1 ? (saving ? t("wizard.saving") : t("wizard.finish")) : t("wizard.next")}
           </button>
         </div>
 
-        {isInput && field && FIELD_INFO[field] && (
+        {isInput && fieldInfoKeys && (
           <div className="rounded-xl border border-pool-100 bg-pool-50 p-4 text-sm space-y-1.5">
-            <p className="text-slate-600 leading-relaxed">{FIELD_INFO[field]!.purpose}</p>
-            <p className="font-medium text-pool-700">{FIELD_INFO[field]!.range}</p>
+            <p className="text-slate-600 leading-relaxed">{t(fieldInfoKeys.purpose)}</p>
+            <p className="font-medium text-pool-700">{t(fieldInfoKeys.range)}</p>
           </div>
         )}
       </div>
@@ -233,9 +220,9 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-800">Wynik testu</h2>
+          <h2 className="text-xl font-bold text-slate-800">{t("wizard.resultTitle")}</h2>
           <button onClick={reset} className="btn-secondary">
-            Nowy test
+            {t("wizard.newTest")}
           </button>
         </div>
         <ResultsTable test={savedTest} volumeLiters={user.volumeLiters} user={user} />

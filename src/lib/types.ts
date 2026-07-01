@@ -2,26 +2,6 @@ export type FilterType = "sand" | "filterballs" | "cartridge" | "de";
 export type SanitizerType = "chlorine" | "active_oxygen" | "bromine" | "phmb";
 export type UsageLevel = "low" | "medium" | "high";
 
-export const FILTER_LABELS: Record<FilterType, string> = {
-  sand: "Piasek (Sand)",
-  filterballs: "Filterballs",
-  cartridge: "Wkład filtracyjny",
-  de: "Ziemia okrzemkowa (DE)",
-};
-
-export const SANITIZER_LABELS: Record<SanitizerType, string> = {
-  chlorine: "Chlor",
-  active_oxygen: "Aktywny tlen (MPS)",
-  bromine: "Brom",
-  phmb: "Biguanid (PHMB)",
-};
-
-export const USAGE_LABELS: Record<UsageLevel, string> = {
-  low: "Rzadkie (kilka razy w tygodniu)",
-  medium: "Regularne (codziennie)",
-  high: "Intensywne (wiele osób / często)",
-};
-
 export interface User {
   id: string;
   /** E-mail konta Google właściciela profilu (do rozdzielenia danych między użytkownikami) */
