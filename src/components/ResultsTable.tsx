@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { TestResult } from "@/lib/types";
 import { analyzeTest, statusColor, statusLabel } from "@/lib/water";
 
@@ -7,6 +8,30 @@ export default function ResultsTable({ test, volumeLiters }: { test: TestResult;
   const rows = analyzeTest(test, volumeLiters);
   const measured = rows.filter((r) => r.status !== "missing");
   const problems = measured.filter((r) => r.status !== "ok");
+
+  const [aiText, setAiText] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  async function askGemini() {
+    setAiLoading(true);
+    setAiError(null);
+    setAiText(null);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ test, volumeLiters }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Błąd analizy AI");
+      setAiText(data.text);
+    } catch (e) {
+      setAiError((e as Error).message);
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -68,6 +93,44 @@ export default function ResultsTable({ test, volumeLiters }: { test: TestResult;
               <div className="mt-0.5 opacity-90">{r.recommendation}</div>
             </div>
           ))
+        )}
+      </div>
+
+      {/* Gemini AI */}
+      <div className="pt-1">
+        <button
+          onClick={askGemini}
+          disabled={aiLoading || measured.length === 0}
+          className="btn-secondary w-full gap-2 py-3"
+        >
+          {aiLoading ? (
+            <>
+              <span className="inline-block animate-spin">✦</span>
+              Gemini analizuje…
+            </>
+          ) : (
+            <>
+              <span>✨</span>
+              Zapytaj Gemini o analizę AI
+            </>
+          )}
+        </button>
+
+        {aiError && (
+          <div className="card border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm mt-3">
+            {aiError}
+          </div>
+        )}
+
+        {aiText && (
+          <div className="card p-4 mt-3 border-pool-200 bg-pool-50">
+            <div className="flex items-center gap-2 mb-2 text-pool-700 font-semibold text-sm">
+              <span>✨</span> Analiza Gemini AI
+            </div>
+            <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+              {aiText}
+            </div>
+          </div>
         )}
       </div>
     </div>
