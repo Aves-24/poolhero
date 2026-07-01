@@ -40,7 +40,7 @@ function getSheetsClient() {
   return google.sheets({ version: "v4", auth });
 }
 
-const USERS_HEADER = ["id", "name", "volumeLiters", "createdAt", "filterType", "sanitizer", "covered", "heated", "usage", "sanitizerNote", "city"];
+const USERS_HEADER = ["id", "name", "volumeLiters", "createdAt", "filterType", "sanitizer", "covered", "heated", "usage", "sanitizerNote", "city", "photoUrl"];
 const TESTS_HEADER = ["id", "userId", "createdAt", "ph", "freeCl", "totalCl", "combinedCl", "alkalinity", "cya", "note"];
 
 let initialized = false;
@@ -129,7 +129,7 @@ export async function getUsers(): Promise<User[]> {
   const sheets = getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${USERS_TAB}!A2:K`,
+    range: `${USERS_TAB}!A2:L`,
     valueRenderOption: "UNFORMATTED_VALUE",
   });
   const rows = res.data.values || [];
@@ -147,11 +147,12 @@ export async function getUsers(): Promise<User[]> {
       usage: (r[8] as User["usage"]) || undefined,
       sanitizerNote: r[9] ? String(r[9]) : undefined,
       city: r[10] ? String(r[10]) : undefined,
+      photoUrl: r[11] ? String(r[11]) : undefined,
     }));
 }
 
 export async function addUser(input: NewUser): Promise<User> {
-  const user: User = { id: id(), name: input.name, volumeLiters: input.volumeLiters, createdAt: new Date().toISOString(), filterType: input.filterType, sanitizer: input.sanitizer, covered: input.covered, heated: input.heated, usage: input.usage, sanitizerNote: input.sanitizerNote, city: input.city };
+  const user: User = { id: id(), name: input.name, volumeLiters: input.volumeLiters, createdAt: new Date().toISOString(), filterType: input.filterType, sanitizer: input.sanitizer, covered: input.covered, heated: input.heated, usage: input.usage, sanitizerNote: input.sanitizerNote, city: input.city, photoUrl: input.photoUrl };
   if (!useSheets) {
     const db = await readJson();
     db.users.push(user);
@@ -164,7 +165,7 @@ export async function addUser(input: NewUser): Promise<User> {
     spreadsheetId: SHEET_ID,
     range: `${USERS_TAB}!A:J`,
     valueInputOption: "RAW",
-    requestBody: { values: [[user.id, user.name, user.volumeLiters, user.createdAt, user.filterType ?? "", user.sanitizer ?? "", user.covered ?? "", user.heated ?? "", user.usage ?? "", user.sanitizerNote ?? "", user.city ?? ""]] },
+    requestBody: { values: [[user.id, user.name, user.volumeLiters, user.createdAt, user.filterType ?? "", user.sanitizer ?? "", user.covered ?? "", user.heated ?? "", user.usage ?? "", user.sanitizerNote ?? "", user.city ?? "", user.photoUrl ?? ""]] },
   });
   return user;
 }
@@ -177,12 +178,13 @@ export async function updateUser(userId: string, patch: Partial<NewUser>): Promi
     if (patch.name !== undefined) u.name = patch.name;
     if (patch.volumeLiters !== undefined) u.volumeLiters = patch.volumeLiters;
     if (patch.city !== undefined) u.city = patch.city || undefined;
+    if (patch.photoUrl !== undefined) u.photoUrl = patch.photoUrl || undefined;
     await writeJson(db);
     return u;
   }
   await ensureSheets();
   const sheets = getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${USERS_TAB}!A2:K`, valueRenderOption: "UNFORMATTED_VALUE" });
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${USERS_TAB}!A2:L`, valueRenderOption: "UNFORMATTED_VALUE" });
   const rows = res.data.values || [];
   const idx = rows.findIndex((r) => String(r[0]) === userId);
   if (idx < 0) return null;
@@ -205,13 +207,14 @@ export async function updateUser(userId: string, patch: Partial<NewUser>): Promi
     usage: (patch.usage !== undefined ? patch.usage : (row[8] as User["usage"])) || undefined,
     sanitizerNote: patch.sanitizerNote !== undefined ? patch.sanitizerNote || undefined : (row[9] ? String(row[9]) : undefined),
     city: patch.city !== undefined ? patch.city || undefined : (row[10] ? String(row[10]) : undefined),
+    photoUrl: patch.photoUrl !== undefined ? patch.photoUrl || undefined : (row[11] ? String(row[11]) : undefined),
   };
   const rowNumber = idx + 2;
   await sheets.spreadsheets.values.update({
     spreadsheetId: SHEET_ID,
-    range: `${USERS_TAB}!A${rowNumber}:K${rowNumber}`,
+    range: `${USERS_TAB}!A${rowNumber}:L${rowNumber}`,
     valueInputOption: "RAW",
-    requestBody: { values: [[updated.id, updated.name, updated.volumeLiters, updated.createdAt, updated.filterType ?? "", updated.sanitizer ?? "", updated.covered ?? "", updated.heated ?? "", updated.usage ?? "", updated.sanitizerNote ?? "", updated.city ?? ""]] },
+    requestBody: { values: [[updated.id, updated.name, updated.volumeLiters, updated.createdAt, updated.filterType ?? "", updated.sanitizer ?? "", updated.covered ?? "", updated.heated ?? "", updated.usage ?? "", updated.sanitizerNote ?? "", updated.city ?? "", updated.photoUrl ?? ""]] },
   });
   return updated;
 }
@@ -243,6 +246,32 @@ export async function deleteUser(userId: string): Promise<void> {
       ],
     },
   });
+}
+
+export async function getAllTests(): Promise<TestResult[]> {
+  if (!useSheets) {
+    const db = await readJson();
+    return db.tests.map(withCombined).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+  await ensureSheets();
+  const sheets = getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TESTS_TAB}!A2:J`, valueRenderOption: "UNFORMATTED_VALUE" });
+  const rows = res.data.values || [];
+  return rows
+    .filter((r) => r[0])
+    .map((r) => withCombined({
+      id: String(r[0]),
+      userId: String(r[1]),
+      createdAt: String(r[2] ?? ""),
+      ph: num(r[3]),
+      freeCl: num(r[4]),
+      totalCl: num(r[5]),
+      combinedCl: num(r[6]),
+      alkalinity: num(r[7]),
+      cya: num(r[8]),
+      note: r[9] ? String(r[9]) : undefined,
+    }))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function getTests(userId: string): Promise<TestResult[]> {

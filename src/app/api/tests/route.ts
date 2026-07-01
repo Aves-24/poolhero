@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTests, addTest } from "@/lib/sheets";
+import { getTests, getAllTests, addTest } from "@/lib/sheets";
 
 export const dynamic = "force-dynamic";
 
@@ -7,8 +7,7 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
-    if (!userId) return NextResponse.json({ error: "Brak userId" }, { status: 400 });
-    const tests = await getTests(userId);
+    const tests = userId ? await getTests(userId) : await getAllTests();
     return NextResponse.json(tests);
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });

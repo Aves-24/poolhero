@@ -2,11 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { User } from "@/lib/types";
+import type { TestResult, User } from "@/lib/types";
+
+function lastTestLabel(createdAt: string | undefined): string {
+  if (!createdAt) return "Brak testów";
+  const days = Math.floor((Date.now() - new Date(createdAt).getTime()) / 86_400_000);
+  if (days === 0) return "Ostatni test: dzisiaj";
+  if (days === 1) return "Ostatni test: 1 dzień temu";
+  return `Ostatni test: ${days} dni temu`;
+}
 
 export default function HomePage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
+  const [lastTestByUser, setLastTestByUser] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [volume, setVolume] = useState("");
@@ -17,10 +26,22 @@ export default function HomePage() {
   async function load() {
     setLoading(true);
     try {
-      const res = await fetch("/api/users");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Błąd ładowania");
-      setUsers(data);
+      const [usersRes, testsRes] = await Promise.all([
+        fetch("/api/users"),
+        fetch("/api/tests"),
+      ]);
+      const usersData: User[] = await usersRes.json();
+      const testsData: TestResult[] = await testsRes.json();
+      if (!usersRes.ok) throw new Error((usersData as unknown as { error: string }).error || "Błąd ładowania");
+
+      setUsers(usersData);
+
+      // Testy są już posortowane malejąco — pierwszy trafiony dla każdego userId to najnowszy
+      const map: Record<string, string> = {};
+      testsData.forEach((t) => {
+        if (!map[t.userId]) map[t.userId] = t.createdAt;
+      });
+      setLastTestByUser(map);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -53,12 +74,6 @@ export default function HomePage() {
     }
   }
 
-  async function removeUser(id: string) {
-    if (!confirm("Usunąć ten profil wraz z historią testów?")) return;
-    await fetch(`/api/users/${id}`, { method: "DELETE" });
-    setUsers((u) => u.filter((x) => x.id !== id));
-  }
-
   return (
     <div className="space-y-6 pb-24">
       <section>
@@ -75,15 +90,27 @@ export default function HomePage() {
           <div className="text-slate-400 col-span-full">Brak profili. Dodaj pierwszy przyciskiem + poniżej.</div>
         ) : (
           users.map((u) => (
-            <div key={u.id} className="card p-4 flex items-center gap-3">
-              <button onClick={() => router.push(`/pool/${u.id}`)} className="flex-1 text-left">
+            <button
+              key={u.id}
+              onClick={() => router.push(`/pool/${u.id}`)}
+              className="card p-4 flex items-center gap-3 text-left hover:border-pool-300 transition w-full"
+            >
+              {u.photoUrl ? (
+                <img
+                  src={u.photoUrl}
+                  alt=""
+                  className="w-14 h-14 rounded-full object-cover flex-shrink-0 border border-slate-200"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-pool-100 flex items-center justify-center flex-shrink-0 text-pool-600 text-xl font-bold">
+                  {u.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
                 <div className="font-semibold text-slate-800">{u.name}</div>
-                <div className="text-sm text-slate-500">{u.volumeLiters.toLocaleString("pl-PL")} l wody</div>
-              </button>
-              <button onClick={() => removeUser(u.id)} className="btn-ghost text-rose-500 px-2" title="Usuń">
-                ✕
-              </button>
-            </div>
+                <div className="text-sm text-slate-500">{lastTestLabel(lastTestByUser[u.id])}</div>
+              </div>
+            </button>
           ))
         )}
       </section>
@@ -129,7 +156,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* FAB — przycisk + w lewym dolnym rogu */}
+      {/* FAB */}
       <button
         onClick={() => setOpen(true)}
         className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-pool-600 text-white shadow-lg hover:bg-pool-700 active:scale-95 transition flex items-center justify-center text-3xl leading-none"

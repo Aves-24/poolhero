@@ -42,6 +42,8 @@ export interface User {
   sanitizerNote?: string;
   /** Miasto, w którym stoi basen (do sprawdzania pogody w prompcie AI) */
   city?: string;
+  /** URL miniaturki z Google Drive */
+  photoUrl?: string;
 }
 
 export interface TestResult {

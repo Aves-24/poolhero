@@ -33,6 +33,9 @@ export default function PoolPage() {
   const [city, setCity] = useState("");
   const [savingSettings, setSavingSettings] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   function applyUser(u: User) {
     setName(u.name);
@@ -130,6 +133,53 @@ export default function PoolPage() {
     if (days === 1) return "Ostatni test: 1 dzień temu";
     if (days < 5) return `Ostatni test: ${days} dni temu`;
     return `Ostatni test: ${days} dni temu`;
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoUploading(true);
+    setPhotoError(null);
+    try {
+      const form = new FormData();
+      form.append("photo", file);
+      const res = await fetch(`/api/users/${userId}/photo`, { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Błąd uploadu");
+      setUser(data.user);
+    } catch (err) {
+      setPhotoError((err as Error).message);
+    } finally {
+      setPhotoUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleDeletePhoto() {
+    if (!window.confirm("Usunąć zdjęcie?")) return;
+    setPhotoUploading(true);
+    setPhotoError(null);
+    try {
+      const res = await fetch(`/api/users/${userId}/photo`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Błąd usuwania");
+      setUser(data.user);
+    } catch (err) {
+      setPhotoError((err as Error).message);
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
+  async function handleDeleteUser() {
+    if (!window.confirm(`Usunąć profil „${user?.name}" wraz z całą historią testów? Tej operacji nie można cofnąć.`)) return;
+    setDeletingUser(true);
+    try {
+      await fetch(`/api/users/${userId}`, { method: "DELETE" });
+      router.push("/");
+    } catch {
+      setDeletingUser(false);
+    }
   }
 
   if (loading) return <div className="text-slate-400">Ładowanie…</div>;
@@ -268,6 +318,46 @@ export default function PoolPage() {
             {savedMsg && <span className="text-emerald-600 text-sm">Zapisano ✓</span>}
           </div>
         </form>
+
+        {/* Zdjęcie profilowe */}
+        <div className="card p-5 space-y-4">
+          <p className="text-xs font-semibold text-pool-600 uppercase tracking-wide">Zdjęcie profilowe</p>
+          <div className="flex items-center gap-4">
+            {user.photoUrl ? (
+              <img src={user.photoUrl} alt="" className="w-20 h-20 rounded-full object-cover border border-slate-200" />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-pool-100 flex items-center justify-center text-pool-600 text-3xl font-bold">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className={`btn-secondary text-sm cursor-pointer ${photoUploading ? "opacity-50 pointer-events-none" : ""}`}>
+                {photoUploading ? "Wysyłam…" : user.photoUrl ? "Zmień zdjęcie" : "Dodaj zdjęcie"}
+                <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={photoUploading} />
+              </label>
+              {user.photoUrl && (
+                <button onClick={handleDeletePhoto} disabled={photoUploading} className="block text-xs text-rose-500 hover:text-rose-700 transition">
+                  Usuń zdjęcie
+                </button>
+              )}
+            </div>
+          </div>
+          <p className="text-xs text-slate-400">Zdjęcie zapisuje się na Google Drive. Wyświetlane jako miniaturka na stronie głównej.</p>
+          {photoError && <p className="text-xs text-rose-600">{photoError}</p>}
+        </div>
+
+        {/* Usuń profil */}
+        <div className="card p-5 border-rose-100">
+          <p className="text-xs font-semibold text-rose-500 uppercase tracking-wide mb-3">Strefa niebezpieczna</p>
+          <button
+            onClick={handleDeleteUser}
+            disabled={deletingUser}
+            className="text-sm text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg px-4 py-2 border border-rose-200 transition disabled:opacity-50"
+          >
+            {deletingUser ? "Usuwam…" : "Usuń profil i całą historię testów"}
+          </button>
+          <p className="text-xs text-slate-400 mt-2">Tej operacji nie można cofnąć.</p>
+        </div>
       )}
 
       {tab === "history" && (
