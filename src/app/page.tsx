@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import type { TestResult, User } from "@/lib/types";
 
 function lastTestLabel(createdAt: string | undefined): string {
@@ -14,6 +15,7 @@ function lastTestLabel(createdAt: string | undefined): string {
 
 export default function HomePage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [users, setUsers] = useState<User[]>([]);
   const [lastTestByUser, setLastTestByUser] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -76,9 +78,19 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6 pb-24">
-      <section>
-        <h1 className="text-2xl font-bold text-slate-800">Wybierz profil basenu</h1>
-        <p className="text-slate-500 mt-1">Każdy profil ma własną objętość wody i historię testów.</p>
+      <section className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">Wybierz profil basenu</h1>
+          <p className="text-slate-500 mt-1">Każdy profil ma własną objętość wody i historię testów.</p>
+        </div>
+        {session?.user && (
+          <div className="text-right flex-shrink-0">
+            <div className="text-xs text-slate-400 max-w-[10rem] truncate">{session.user.email}</div>
+            <button onClick={() => signOut()} className="text-xs text-slate-500 hover:text-rose-600 transition mt-0.5">
+              Wyloguj
+            </button>
+          </div>
+        )}
       </section>
 
       {error && <div className="card border-rose-200 bg-rose-50 text-rose-700 p-3 text-sm">{error}</div>}

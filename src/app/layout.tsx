@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import AuthGate from "@/components/AuthGate";
+import Providers from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "PoolHero — analiza wody basenowej",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pl">
       <body>
+        <Providers>
         <AuthGate>
           <header className="border-b border-pool-100 bg-white/70 backdrop-blur sticky top-0 z-10">
             <div className="mx-auto max-w-3xl px-4 py-3 flex items-center gap-2">
@@ -32,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Dawki są przybliżone — zawsze sprawdzaj etykietę preparatu. Normy: basen prywatny.
           </footer>
         </AuthGate>
+        </Providers>
       </body>
     </html>
   );

@@ -24,6 +24,8 @@ export const USAGE_LABELS: Record<UsageLevel, string> = {
 
 export interface User {
   id: string;
+  /** E-mail konta Google właściciela profilu (do rozdzielenia danych między użytkownikami) */
+  ownerEmail?: string;
   name: string;
   /** Objętość wody w basenie w litrach */
   volumeLiters: number;

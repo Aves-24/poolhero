@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { updateUser, deleteUser } from "@/lib/sheets";
+import { getOwnerEmail } from "@/lib/session";
 import type { FilterType, SanitizerType, UsageLevel } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ const VALID_USAGE: UsageLevel[] = ["low", "medium", "high"];
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
+    const owner = await getOwnerEmail();
+    if (!owner) return NextResponse.json({ error: "Zaloguj się." }, { status: 401 });
     const body = await req.json();
     const patch: Parameters<typeof updateUser>[1] = {};
 
@@ -28,7 +31,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (body.sanitizerNote !== undefined) patch.sanitizerNote = String(body.sanitizerNote).slice(0, 200) || undefined;
     if (body.city !== undefined) patch.city = String(body.city).slice(0, 100) || undefined;
 
-    const user = await updateUser(params.id, patch);
+    const user = await updateUser(params.id, patch, owner);
     if (!user) return NextResponse.json({ error: "Nie znaleziono profilu" }, { status: 404 });
     return NextResponse.json(user);
   } catch (e) {
@@ -38,7 +41,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
-    await deleteUser(params.id);
+    const owner = await getOwnerEmail();
+    if (!owner) return NextResponse.json({ error: "Zaloguj się." }, { status: 401 });
+    const ok = await deleteUser(params.id, owner);
+    if (!ok) return NextResponse.json({ error: "Nie znaleziono profilu" }, { status: 404 });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 });
