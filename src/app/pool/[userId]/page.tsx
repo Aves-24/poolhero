@@ -226,6 +226,7 @@ export default function PoolPage() {
       {tab === "test" && <TestWizard user={user} onSaved={loadTests} />}
 
       {tab === "settings" && (
+        <div className="space-y-5">
         <form onSubmit={saveSettings} className="card p-5 space-y-5">
           <h2 className="font-semibold text-slate-800">Ustawienia profilu (Einstellungen)</h2>
 
@@ -357,6 +358,7 @@ export default function PoolPage() {
             {deletingUser ? "Usuwam…" : "Usuń profil i całą historię testów"}
           </button>
           <p className="text-xs text-slate-400 mt-2">Tej operacji nie można cofnąć.</p>
+        </div>
         </div>
       )}
 

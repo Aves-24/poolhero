@@ -2,31 +2,41 @@
 
 import { useEffect, useState } from "react";
 
-const SESSION_KEY = "ph_auth";
-const VALID_LOGIN = "rafal";
-const VALID_PASSWORD = "Pool123!";
-
 export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const ok = localStorage.getItem(SESSION_KEY) === "1";
-    setAuthed(ok);
-    setChecked(true);
+    fetch("/api/login")
+      .then((r) => r.json())
+      .then((d) => setAuthed(Boolean(d.authed)))
+      .catch(() => setAuthed(false))
+      .finally(() => setChecked(true));
   }, []);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (login.trim().toLowerCase() === VALID_LOGIN && password === VALID_PASSWORD) {
-      localStorage.setItem(SESSION_KEY, "1");
-      setAuthed(true);
-      setError(false);
-    } else {
+    setSubmitting(true);
+    setError(false);
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login, password }),
+      });
+      if (res.ok) {
+        setAuthed(true);
+      } else {
+        setError(true);
+      }
+    } catch {
       setError(true);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -71,8 +81,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             </div>
           )}
 
-          <button className="btn-primary w-full mt-2" type="submit">
-            Zaloguj się
+          <button className="btn-primary w-full mt-2" type="submit" disabled={submitting}>
+            {submitting ? "Logowanie…" : "Zaloguj się"}
           </button>
         </form>
       </div>
