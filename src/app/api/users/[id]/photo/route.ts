@@ -13,8 +13,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const formData = await req.formData();
     const file = formData.get("photo") as File | null;
     if (!file) return NextResponse.json({ error: "Brak pliku" }, { status: 400 });
-    if (file.size > 8 * 1024 * 1024)
-      return NextResponse.json({ error: "Plik za duży (max 8 MB)" }, { status: 400 });
+    if (file.size > 4 * 1024 * 1024)
+      return NextResponse.json({ error: "Plik za duży (max 4 MB)" }, { status: 400 });
     if (!file.type.startsWith("image/"))
       return NextResponse.json({ error: "Tylko pliki graficzne (jpg, png, webp…)" }, { status: 400 });
 

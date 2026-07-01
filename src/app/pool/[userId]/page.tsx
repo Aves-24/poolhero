@@ -6,8 +6,19 @@ import type { FilterType, TestResult, UsageLevel, User } from "@/lib/types";
 import { filterLabels, usageLabels } from "@/lib/i18n/translations";
 import { useLocale } from "@/lib/i18n/LocaleContext";
 import { analyzeTest, statusColor, statusLabel } from "@/lib/water";
+import { resizeImage } from "@/lib/resizeImage";
 import TestWizard from "@/components/TestWizard";
 import ResultsTable from "@/components/ResultsTable";
+
+/** Bezpiecznie parsuje odpowiedź fetch — serwer/hosting może zwrócić czysty tekst (np. "Request Entity Too Large") zamiast JSON. */
+async function parseJsonSafe(res: Response): Promise<{ error?: string; [key: string]: unknown }> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text.slice(0, 200) || `Błąd serwera (${res.status})` };
+  }
+}
 
 type Tab = "test" | "settings" | "history";
 
@@ -142,12 +153,13 @@ export default function PoolPage() {
     setPhotoUploading(true);
     setPhotoError(null);
     try {
+      const resized = await resizeImage(file);
       const form = new FormData();
-      form.append("photo", file);
+      form.append("photo", resized, "photo.jpg");
       const res = await fetch(`/api/users/${userId}/photo`, { method: "POST", body: form });
-      const data = await res.json();
+      const data = await parseJsonSafe(res);
       if (!res.ok) throw new Error(data.error || t("settings.photoUploadError"));
-      setUser(data.user);
+      setUser(data.user as User);
     } catch (err) {
       setPhotoError((err as Error).message);
     } finally {
@@ -162,9 +174,9 @@ export default function PoolPage() {
     setPhotoError(null);
     try {
       const res = await fetch(`/api/users/${userId}/photo`, { method: "DELETE" });
-      const data = await res.json();
+      const data = await parseJsonSafe(res);
       if (!res.ok) throw new Error(data.error || t("settings.photoDeleteError"));
-      setUser(data.user);
+      setUser(data.user as User);
     } catch (err) {
       setPhotoError((err as Error).message);
     } finally {
