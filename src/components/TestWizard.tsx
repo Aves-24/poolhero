@@ -197,7 +197,7 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
             Nowy test
           </button>
         </div>
-        <ResultsTable test={savedTest} volumeLiters={user.volumeLiters} />
+        <ResultsTable test={savedTest} volumeLiters={user.volumeLiters} user={user} />
       </div>
     );
   }

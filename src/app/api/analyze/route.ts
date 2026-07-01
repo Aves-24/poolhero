@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import type { TestResult } from "@/lib/types";
+import type { TestResult, User } from "@/lib/types";
+import { FILTER_LABELS, SANITIZER_LABELS, USAGE_LABELS } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -7,38 +8,55 @@ const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
-function formatValue(v: number | undefined, unit: string) {
-  if (v === undefined) return null;
-  return `${v} ${unit}`.trim();
-}
+function buildPrompt(test: TestResult, volumeLiters: number, user?: User): string {
+  const measurements: string[] = [];
+  if (test.ph !== undefined) measurements.push(`- pH: ${test.ph}`);
+  if (test.freeCl !== undefined) measurements.push(`- Chlor wolny: ${test.freeCl} mg/l`);
+  if (test.totalCl !== undefined) measurements.push(`- Chlor całkowity: ${test.totalCl} mg/l`);
+  if (test.combinedCl !== undefined) measurements.push(`- Chlor związany: ${test.combinedCl} mg/l`);
+  if (test.alkalinity !== undefined) measurements.push(`- Zasadowość (TA): ${test.alkalinity} mg/l`);
+  if (test.cya !== undefined) measurements.push(`- Stabilizator (CYA): ${test.cya} mg/l`);
 
-function buildPrompt(test: TestResult, volumeLiters: number): string {
-  const lines: string[] = [];
+  const technical: string[] = [];
+  if (user?.filterType) technical.push(`- Typ filtra: ${FILTER_LABELS[user.filterType]}`);
+  if (user?.sanitizer) technical.push(`- Środek dezynfekujący: ${SANITIZER_LABELS[user.sanitizer]}`);
+  if (user?.covered !== undefined) technical.push(`- Przykrycie basenu: ${user.covered ? "tak, basen jest przykrywany" : "nie, basen odkryty"}`);
+  if (user?.heated !== undefined) technical.push(`- Podgrzewanie wody: ${user.heated ? "tak, woda jest podgrzewana" : "nie, bez ogrzewania"}`);
+  if (user?.usage) technical.push(`- Intensywność użytkowania: ${USAGE_LABELS[user.usage]}`);
 
-  if (test.ph !== undefined) lines.push(`- pH: ${test.ph}`);
-  if (test.freeCl !== undefined) lines.push(`- Chlor wolny: ${test.freeCl} mg/l`);
-  if (test.totalCl !== undefined) lines.push(`- Chlor całkowity: ${test.totalCl} mg/l`);
-  if (test.combinedCl !== undefined) lines.push(`- Chlor związany: ${test.combinedCl} mg/l`);
-  if (test.alkalinity !== undefined) lines.push(`- Zasadowość (TA): ${test.alkalinity} mg/l`);
-  if (test.cya !== undefined) lines.push(`- Stabilizator (CYA): ${test.cya} mg/l`);
+  let prompt =
+    `Jesteś ekspertem od domowych basenów. Mój basen ma ${volumeLiters.toLocaleString("pl-PL")} litrów wody.\n\n` +
+    `Zmierzyłem wartości wody i moje wyniki są następujące:\n${measurements.join("\n")}\n\n`;
 
-  return (
-    `Jesteś ekspertem od domowych basenów. Mój basen ma ${volumeLiters.toLocaleString("pl-PL")} litrów wody. ` +
-    `Zmierzyłem wartości wody i moje wyniki są następujące:\n${lines.join("\n")}\n\n` +
+  if (technical.length > 0) {
+    prompt += `Dane techniczne basenu:\n${technical.join("\n")}\n\n`;
+  }
+
+  prompt +=
     `Sprawdź w swojej bazie wiedzy czy jest coś do poprawy. Jeśli tak, zaproponuj konkretne rozwiązanie ` +
     `(jakie preparaty dodać i w jakiej przybliżonej ilości na ${volumeLiters.toLocaleString("pl-PL")} litrów). ` +
-    `Odpowiedz po polsku, zwięźle i praktycznie.`
-  );
+    `Uwzględnij dane techniczne basenu przy dawkowaniu i rekomendacjach. ` +
+    `Odpowiedz po polsku, zwięźle i praktycznie.`;
+
+  return prompt;
 }
 
 export async function POST(req: Request) {
   if (!GEMINI_KEY) {
-    return NextResponse.json({ error: "Brak klucza GEMINI_API_KEY — skonfiguruj zmienną środowiskową." }, { status: 503 });
+    return NextResponse.json(
+      { error: "Brak klucza GEMINI_API_KEY — skonfiguruj zmienną środowiskową na Vercel." },
+      { status: 503 }
+    );
   }
 
   try {
-    const { test, volumeLiters } = (await req.json()) as { test: TestResult; volumeLiters: number };
-    const prompt = buildPrompt(test, volumeLiters);
+    const { test, volumeLiters, user } = (await req.json()) as {
+      test: TestResult;
+      volumeLiters: number;
+      user?: User;
+    };
+
+    const prompt = buildPrompt(test, volumeLiters, user);
 
     const res = await fetch(`${GEMINI_URL}?key=${GEMINI_KEY}`, {
       method: "POST",

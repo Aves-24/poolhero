@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { TestResult } from "@/lib/types";
+import type { TestResult, User } from "@/lib/types";
 import { analyzeTest, statusColor, statusLabel } from "@/lib/water";
 
-export default function ResultsTable({ test, volumeLiters }: { test: TestResult; volumeLiters: number }) {
+export default function ResultsTable({ test, volumeLiters, user }: { test: TestResult; volumeLiters: number; user?: User }) {
   const rows = analyzeTest(test, volumeLiters);
   const measured = rows.filter((r) => r.status !== "missing");
   const problems = measured.filter((r) => r.status !== "ok");
@@ -21,7 +21,7 @@ export default function ResultsTable({ test, volumeLiters }: { test: TestResult;
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ test, volumeLiters }),
+        body: JSON.stringify({ test, volumeLiters, user }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Błąd analizy AI");

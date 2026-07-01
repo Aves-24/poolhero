@@ -1,20 +1,31 @@
 import { NextResponse } from "next/server";
 import { updateUser, deleteUser } from "@/lib/sheets";
+import type { FilterType, SanitizerType, UsageLevel } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+const VALID_FILTERS: FilterType[] = ["sand", "filterballs", "cartridge", "de"];
+const VALID_SANITIZERS: SanitizerType[] = ["chlorine", "active_oxygen", "bromine", "phmb"];
+const VALID_USAGE: UsageLevel[] = ["low", "medium", "high"];
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const body = await req.json();
-    const patch: { name?: string; volumeLiters?: number } = {};
+    const patch: Parameters<typeof updateUser>[1] = {};
+
     if (body.name !== undefined) patch.name = String(body.name).trim();
     if (body.volumeLiters !== undefined) {
       const v = Number(body.volumeLiters);
-      if (!Number.isFinite(v) || v <= 0) {
+      if (!Number.isFinite(v) || v <= 0)
         return NextResponse.json({ error: "Podaj poprawną objętość wody (w litrach)" }, { status: 400 });
-      }
       patch.volumeLiters = v;
     }
+    if (body.filterType !== undefined) patch.filterType = VALID_FILTERS.includes(body.filterType) ? body.filterType : undefined;
+    if (body.sanitizer !== undefined) patch.sanitizer = VALID_SANITIZERS.includes(body.sanitizer) ? body.sanitizer : undefined;
+    if (body.covered !== undefined) patch.covered = Boolean(body.covered);
+    if (body.heated !== undefined) patch.heated = Boolean(body.heated);
+    if (body.usage !== undefined) patch.usage = VALID_USAGE.includes(body.usage) ? body.usage : undefined;
+
     const user = await updateUser(params.id, patch);
     if (!user) return NextResponse.json({ error: "Nie znaleziono profilu" }, { status: 404 });
     return NextResponse.json(user);
