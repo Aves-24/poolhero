@@ -12,6 +12,7 @@ export default function HomePage() {
   const [volume, setVolume] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [open, setOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -27,9 +28,7 @@ export default function HomePage() {
     }
   }
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   async function addUser(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +45,7 @@ export default function HomePage() {
       setName("");
       setVolume("");
       setUsers((u) => [...u, data]);
+      setOpen(false);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -60,7 +60,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       <section>
         <h1 className="text-2xl font-bold text-slate-800">Wybierz profil basenu</h1>
         <p className="text-slate-500 mt-1">Każdy profil ma własną objętość wody i historię testów.</p>
@@ -72,7 +72,7 @@ export default function HomePage() {
         {loading ? (
           <div className="text-slate-400">Ładowanie…</div>
         ) : users.length === 0 ? (
-          <div className="text-slate-400 col-span-full">Brak profili. Dodaj pierwszy poniżej.</div>
+          <div className="text-slate-400 col-span-full">Brak profili. Dodaj pierwszy przyciskiem + poniżej.</div>
         ) : (
           users.map((u) => (
             <div key={u.id} className="card p-4 flex items-center gap-3">
@@ -88,29 +88,55 @@ export default function HomePage() {
         )}
       </section>
 
-      <section className="card p-5">
-        <h2 className="font-semibold text-slate-800 mb-3">➕ Dodaj nowy profil</h2>
-        <form onSubmit={addUser} className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
-          <div>
-            <label className="label">Nazwa profilu</label>
-            <input className="input" placeholder="np. Basen ogród" value={name} onChange={(e) => setName(e.target.value)} />
+      {/* Modal */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 flex items-end sm:items-center justify-start sm:justify-start p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}
+        >
+          <div className="card p-5 w-full max-w-sm shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-slate-800">Nowy profil basenu</h2>
+              <button onClick={() => setOpen(false)} className="btn-ghost px-2 text-slate-400">✕</button>
+            </div>
+            <form onSubmit={addUser} className="space-y-3">
+              <div>
+                <label className="label">Nazwa profilu</label>
+                <input
+                  className="input"
+                  placeholder="np. Basen ogród"
+                  value={name}
+                  autoFocus
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label">Objętość wody (litry)</label>
+                <input
+                  className="input"
+                  type="number"
+                  min={1}
+                  placeholder="np. 24000"
+                  value={volume}
+                  onChange={(e) => setVolume(e.target.value)}
+                />
+              </div>
+              <button className="btn-primary w-full mt-1" disabled={saving}>
+                {saving ? "Zapisuję…" : "Dodaj profil"}
+              </button>
+            </form>
           </div>
-          <div>
-            <label className="label">Objętość wody (litry)</label>
-            <input
-              className="input sm:w-44"
-              type="number"
-              min={1}
-              placeholder="np. 24000"
-              value={volume}
-              onChange={(e) => setVolume(e.target.value)}
-            />
-          </div>
-          <button className="btn-primary" disabled={saving}>
-            {saving ? "Zapisuję…" : "Dodaj"}
-          </button>
-        </form>
-      </section>
+        </div>
+      )}
+
+      {/* FAB — przycisk + w lewym dolnym rogu */}
+      <button
+        onClick={() => setOpen(true)}
+        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-pool-600 text-white shadow-lg hover:bg-pool-700 active:scale-95 transition flex items-center justify-center text-3xl leading-none"
+        title="Dodaj profil"
+      >
+        +
+      </button>
     </div>
   );
 }
