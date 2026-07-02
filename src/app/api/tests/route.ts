@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       totalCl: numOrUndef(body.totalCl),
       alkalinity: numOrUndef(body.alkalinity),
       cya: numOrUndef(body.cya),
+      waterTemp: numOrUndef(body.waterTemp),
       note: body.note ? String(body.note) : undefined,
     }, owner);
     if (!test) return NextResponse.json({ error: "Brak dostępu do tego profilu" }, { status: 403 });

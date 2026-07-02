@@ -103,6 +103,7 @@ const pl: Dict = {
   "wizard.cancel": "Anuluj",
   "wizard.finish": "Zakończ i pokaż wynik",
   "wizard.next": "Dalej →",
+  "wizard.optional": "opcjonalnie",
   "wizard.saving": "Zapisuję…",
   "wizard.saveError": "Nie udało się zapisać testu",
   "wizard.resultTitle": "Wynik testu",
@@ -119,6 +120,8 @@ const pl: Dict = {
   "measure.cya.description": "Kwas cyjanurowy",
 
   // Wizard steps (reagents)
+  "step.waterTemp.title": "Temperatura wody",
+  "step.waterTemp.body": "Jeśli znasz temperaturę wody, wpisz ją poniżej (np. z termometru basenowego). To pole jest opcjonalne — możesz je pominąć i przejść dalej. Temperatura pomaga trafniej ocenić rozkład chloru i komfort kąpieli.",
   "step.powerOn.title": "1. Włącz urządzenie",
   "step.powerOn.body": "Naciśnij przycisk ON/OFF, aby włączyć PoolLab 1.0.",
   "step.fill.title": "2. Napełnij kuwetę wodą basenową",
@@ -139,6 +142,8 @@ const pl: Dict = {
   "step.cya.body": "Wrzuć 1 tabletkę CYA Test, rozkrusz aż się rozpuści i naciśnij przycisk CYA. Odczytaj wynik i wpisz poniżej.",
 
   // Field info panels
+  "fieldInfo.waterTemp.purpose": "Temperatura wody wpływa na tempo rozkładu chloru (im cieplej, tym szybciej), rozwój glonów i komfort kąpieli. Pomaga AI trafniej dobrać dawkowanie.",
+  "fieldInfo.waterTemp.range": "Komfort kąpieli: zwykle 26 – 30 °C",
   "fieldInfo.ph.purpose": "Odczyn kwasowości wody. Wpływa na skuteczność chloru i komfort pływania — przy złym pH chlor traci działanie nawet przy prawidłowym stężeniu.",
   "fieldInfo.ph.range": "Ideał: 7,2 · Norma: 7,0 – 7,4",
   "fieldInfo.freeCl.purpose": "Aktywny chlor dezynfekujący wodę. Za mało = brak ochrony przed bakteriami, za dużo = podrażnienia skóry i oczu.",
@@ -158,6 +163,7 @@ const pl: Dict = {
   "results.tableResult": "Wynik",
   "results.tableNorm": "Norma",
   "results.tableStatus": "Status",
+  "results.waterTemp": "Temperatura wody",
   "results.whatToDo": "Co zrobić?",
   "results.noData": "Brak danych do rekomendacji.",
   "results.share": "Udostępnij",
@@ -221,6 +227,7 @@ const pl: Dict = {
   // AI / share prompt
   "prompt.intro": "Jesteś doświadczonym technologiem wody basenowej z wieloletnią praktyką w utrzymaniu basenów prywatnych. Mój basen ma {{volume}} litrów wody.",
   "prompt.measuredIntro": "Zmierzyłem wartości wody i moje wyniki są następujące:",
+  "prompt.waterTempLine": "- Temperatura wody: {{value}} °C",
   "prompt.technicalIntro": "Dane techniczne basenu:",
   "prompt.filterLine": "- Typ filtra: {{value}}",
   "prompt.sanitizerLine": "- Środek dezynfekujący: {{value}}",
@@ -331,6 +338,7 @@ const de: Dict = {
   "wizard.cancel": "Abbrechen",
   "wizard.finish": "Abschließen und Ergebnis anzeigen",
   "wizard.next": "Weiter →",
+  "wizard.optional": "optional",
   "wizard.saving": "Wird gespeichert…",
   "wizard.saveError": "Test konnte nicht gespeichert werden",
   "wizard.resultTitle": "Testergebnis",
@@ -345,6 +353,8 @@ const de: Dict = {
   "measure.cya.label": "Stabilisator (CYA)",
   "measure.cya.description": "Cyanursäure",
 
+  "step.waterTemp.title": "Wassertemperatur",
+  "step.waterTemp.body": "Wenn Sie die Wassertemperatur kennen, tragen Sie sie unten ein (z. B. vom Poolthermometer). Dieses Feld ist optional — Sie können es überspringen und weitermachen. Die Temperatur hilft, den Chlorabbau und den Badekomfort genauer einzuschätzen.",
   "step.powerOn.title": "1. Gerät einschalten",
   "step.powerOn.body": "Drücken Sie die ON/OFF-Taste, um das PoolLab 1.0 einzuschalten.",
   "step.fill.title": "2. Küvette mit Poolwasser füllen",
@@ -364,6 +374,8 @@ const de: Dict = {
   "step.cya.title": "Stabilisator — CYA-Test",
   "step.cya.body": "Geben Sie 1 CYA-Test-Tablette hinein, zerdrücken Sie sie bis sie sich auflöst und drücken Sie die CYA-Taste. Lesen Sie das Ergebnis ab und tragen Sie es unten ein.",
 
+  "fieldInfo.waterTemp.purpose": "Die Wassertemperatur beeinflusst das Tempo des Chlorabbaus (je wärmer, desto schneller), das Algenwachstum und den Badekomfort. Sie hilft der KI, die Dosierung genauer abzustimmen.",
+  "fieldInfo.waterTemp.range": "Badekomfort: meist 26 – 30 °C",
   "fieldInfo.ph.purpose": "Der Säuregehalt des Wassers. Beeinflusst die Wirksamkeit von Chlor und den Badekomfort — bei falschem pH-Wert verliert Chlor seine Wirkung, selbst bei richtiger Konzentration.",
   "fieldInfo.ph.range": "Ideal: 7,2 · Richtwert: 7,0 – 7,4",
   "fieldInfo.freeCl.purpose": "Aktives Chlor zur Wasserdesinfektion. Zu wenig = kein Schutz vor Bakterien, zu viel = Haut- und Augenreizungen.",
@@ -382,6 +394,7 @@ const de: Dict = {
   "results.tableResult": "Ergebnis",
   "results.tableNorm": "Richtwert",
   "results.tableStatus": "Status",
+  "results.waterTemp": "Wassertemperatur",
   "results.whatToDo": "Was tun?",
   "results.noData": "Keine Daten für Empfehlungen.",
   "results.share": "Teilen",
@@ -439,6 +452,7 @@ const de: Dict = {
 
   "prompt.intro": "Sie sind ein erfahrener Wassertechnologe mit langjähriger Praxis in der Pflege privater Pools. Mein Pool hat {{volume}} Liter Wasser.",
   "prompt.measuredIntro": "Ich habe die Wasserwerte gemessen und meine Ergebnisse sind wie folgt:",
+  "prompt.waterTempLine": "- Wassertemperatur: {{value}} °C",
   "prompt.technicalIntro": "Technische Pooldaten:",
   "prompt.filterLine": "- Filtertyp: {{value}}",
   "prompt.sanitizerLine": "- Desinfektionsmittel: {{value}}",

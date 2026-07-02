@@ -44,6 +44,8 @@ export interface TestResult {
   alkalinity?: number;
   /** Kwas cyjanurowy / stabilizator [mg/l] (CYA Test) */
   cya?: number;
+  /** Temperatura wody [°C] — opcjonalna, pomaga w analizie (rozkład chloru, komfort) */
+  waterTemp?: number;
   note?: string;
 }
 

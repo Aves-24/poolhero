@@ -76,6 +76,12 @@ export default function ResultsTable({ test, volumeLiters, user }: { test: TestR
         </table>
       </div>
 
+      {test.waterTemp !== undefined && (
+        <div className="text-sm text-slate-500">
+          🌡️ {t("results.waterTemp")}: <span className="font-medium text-slate-700 tabular-nums">{test.waterTemp} °C</span>
+        </div>
+      )}
+
       <div className="space-y-2">
         <h3 className="font-semibold text-slate-700">{t("results.whatToDo")}</h3>
         {measured.length === 0 ? (

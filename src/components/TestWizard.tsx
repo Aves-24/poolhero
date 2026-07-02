@@ -11,6 +11,7 @@ type Mode = "choose" | "single-select" | "running" | "done";
 type Values = Partial<Record<InputField, string>>;
 
 const FIELD_INFO_KEYS: Partial<Record<InputField, { purpose: string; range: string }>> = {
+  waterTemp: { purpose: "fieldInfo.waterTemp.purpose", range: "fieldInfo.waterTemp.range" },
   ph: { purpose: "fieldInfo.ph.purpose", range: "fieldInfo.ph.range" },
   freeCl: { purpose: "fieldInfo.freeCl.purpose", range: "fieldInfo.freeCl.range" },
   totalCl: { purpose: "fieldInfo.totalCl.purpose", range: "fieldInfo.totalCl.range" },
@@ -73,7 +74,7 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
     setError(null);
     try {
       const payload: Record<string, unknown> = { userId: user.id };
-      (["ph", "freeCl", "totalCl", "alkalinity", "cya"] as InputField[]).forEach((f) => {
+      (["ph", "freeCl", "totalCl", "alkalinity", "cya", "waterTemp"] as InputField[]).forEach((f) => {
         if (values[f] !== undefined && values[f] !== "") payload[f] = Number(values[f]);
       });
       const res = await fetch("/api/tests", {
@@ -148,7 +149,8 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
   if (mode === "running" && current) {
     const isInput = current.kind === "input";
     const field = current.field;
-    const filled = !isInput || (field !== undefined && values[field] !== undefined && values[field] !== "");
+    const optional = current.optional === true;
+    const filled = !isInput || optional || (field !== undefined && values[field] !== undefined && values[field] !== "");
     const progress = Math.round(((stepIdx + 1) / steps.length) * 100);
     const fieldInfoKeys = field ? FIELD_INFO_KEYS[field] : undefined;
 
@@ -173,7 +175,10 @@ export default function TestWizard({ user, onSaved }: { user: User; onSaved: () 
 
           {isInput && field && (
             <div className="mt-4">
-              <label className="label">{t("wizard.enterResult")} {current.unit ? `(${current.unit})` : ""}</label>
+              <label className="label">
+                {t("wizard.enterResult")} {current.unit ? `(${current.unit})` : ""}
+                {optional && <span className="text-slate-400 font-normal"> · {t("wizard.optional")}</span>}
+              </label>
               <input
                 className="input text-lg"
                 type="number"

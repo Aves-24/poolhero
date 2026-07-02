@@ -50,7 +50,7 @@ function getSheetsClient() {
 }
 
 const USERS_HEADER = ["id", "name", "volumeLiters", "createdAt", "filterType", "sanitizer", "covered", "heated", "usage", "sanitizerNote", "city", "photoUrl", "ownerEmail"];
-const TESTS_HEADER = ["id", "userId", "createdAt", "ph", "freeCl", "totalCl", "combinedCl", "alkalinity", "cya", "note"];
+const TESTS_HEADER = ["id", "userId", "createdAt", "ph", "freeCl", "totalCl", "combinedCl", "alkalinity", "cya", "note", "waterTemp"];
 
 let initialized = false;
 
@@ -181,6 +181,7 @@ function mapTestRow(r: unknown[]): TestResult {
     alkalinity: num(r[7]),
     cya: num(r[8]),
     note: r[9] ? String(r[9]) : undefined,
+    waterTemp: num(r[10]),
   });
 }
 
@@ -322,7 +323,7 @@ export async function getAllTests(owner: string): Promise<TestResult[]> {
   }
   await ensureSheets();
   const sheets = getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TESTS_TAB}!A2:J`, valueRenderOption: "UNFORMATTED_VALUE" });
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TESTS_TAB}!A2:K`, valueRenderOption: "UNFORMATTED_VALUE" });
   const rows = res.data.values || [];
   return rows
     .filter((r) => r[0] && owned.has(String(r[1])))
@@ -339,7 +340,7 @@ export async function getTests(userId: string, owner: string): Promise<TestResul
   }
   await ensureSheets();
   const sheets = getSheetsClient();
-  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TESTS_TAB}!A2:J`, valueRenderOption: "UNFORMATTED_VALUE" });
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `${TESTS_TAB}!A2:K`, valueRenderOption: "UNFORMATTED_VALUE" });
   const rows = res.data.values || [];
   return rows
     .filter((r) => r[0] && String(r[1]) === userId)
@@ -361,6 +362,7 @@ export async function addTest(input: NewTest, owner: string): Promise<TestResult
     totalCl: input.totalCl,
     alkalinity: input.alkalinity,
     cya: input.cya,
+    waterTemp: input.waterTemp,
     note: input.note,
   });
   if (!useSheets) {
@@ -370,7 +372,7 @@ export async function addTest(input: NewTest, owner: string): Promise<TestResult
     return test;
   }
   await ensureSheets();
-  await appendRow(TESTS_TAB, "J", [
+  await appendRow(TESTS_TAB, "K", [
     test.id,
     test.userId,
     test.createdAt,
@@ -381,6 +383,7 @@ export async function addTest(input: NewTest, owner: string): Promise<TestResult
     test.alkalinity ?? "",
     test.cya ?? "",
     test.note ?? "",
+    test.waterTemp ?? "",
   ]);
   return test;
 }

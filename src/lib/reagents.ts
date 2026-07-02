@@ -3,7 +3,7 @@
 import { t, measureLabel, measureDescription, type Locale } from "./i18n/translations";
 
 export type MeasureKey = "ph" | "chlorine" | "alkalinity" | "cya";
-export type InputField = "ph" | "freeCl" | "totalCl" | "alkalinity" | "cya";
+export type InputField = "ph" | "freeCl" | "totalCl" | "alkalinity" | "cya" | "waterTemp";
 
 export interface WizardStep {
   kind: "instruction" | "input";
@@ -15,6 +15,8 @@ export interface WizardStep {
   step?: number;
   min?: number;
   max?: number;
+  /** pole opcjonalne — kreator pozwala przejść dalej bez wypełnienia */
+  optional?: boolean;
 }
 
 export interface MeasureOption {
@@ -38,6 +40,7 @@ export function measureOptions(locale: Locale): MeasureOption[] {
  *  Między parametrami: tylko świeża próbka wody, bez ponownego ZERO.
  */
 export function buildSteps(keys: MeasureKey[], locale: Locale): WizardStep[] {
+  const waterTemp: WizardStep = { kind: "input", title: t(locale, "step.waterTemp.title"), body: t(locale, "step.waterTemp.body"), field: "waterTemp", unit: "°C", step: 0.5, min: 0, max: 40, optional: true };
   const powerOn: WizardStep = { kind: "instruction", title: t(locale, "step.powerOn.title"), body: t(locale, "step.powerOn.body") };
   const fill: WizardStep = { kind: "instruction", title: t(locale, "step.fill.title"), body: t(locale, "step.fill.body") };
   const zero: WizardStep = { kind: "instruction", title: t(locale, "step.zero.title"), body: t(locale, "step.zero.body") };
@@ -59,7 +62,7 @@ export function buildSteps(keys: MeasureKey[], locale: Locale): WizardStep[] {
     ],
   };
 
-  const steps: WizardStep[] = [powerOn, fill, zero];
+  const steps: WizardStep[] = [waterTemp, powerOn, fill, zero];
   keys.forEach((k, i) => {
     if (i > 0) steps.push(freshSample);
     steps.push(...measureSteps[k]);

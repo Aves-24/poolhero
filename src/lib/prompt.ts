@@ -32,6 +32,9 @@ export function buildAnalysisPrompt(
       lines.push(`- ${paramLabel(locale, cfg.key)}: ${value}${cfg.unit ? " " + cfg.unit : ""}`);
     }
   });
+  if (test.waterTemp !== undefined) {
+    lines.push(t(locale, "prompt.waterTempLine", { value: test.waterTemp }));
+  }
 
   const tech: string[] = [];
   if (user?.filterType) tech.push(t(locale, "prompt.filterLine", { value: filterLabels(locale)[user.filterType] }));
